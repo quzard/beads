@@ -729,17 +729,12 @@ func runInitProxiedServerTail(cmd *cobra.Command, ctx context.Context, in initPr
 	if !in.stealth && isRepo && t.useLocalBeads {
 		commitResult, err := gitUC.CommitInitArtifacts(ctx, domain.CommitInitArtifactsParams{
 			BeadsDir: ".beads/",
-			OptionalPaths: []string{
+			OptionalPaths: append([]string{
 				config.SafeAgentsFile(),
 				filepath.Join(".claude", "settings.json"),
 				"CLAUDE.md",
 				".gitignore",
-				".agents",
-				".grok",
-				".qoder",
-				".omp",
-				".factory",
-			},
+			}, setup.SessionPrimeCommitPaths()...),
 			Message:   "bd init: initialize beads issue tracking",
 			NoVerify:  true,
 			SkipHooks: true,

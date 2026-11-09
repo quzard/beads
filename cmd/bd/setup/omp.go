@@ -53,7 +53,6 @@ export default function beadsPrime(pi) {
     if (primed) {
       return;
     }
-    primed = true;
     let content = "";
     try {
       content = execFileSync("bd", ["prime"], {
@@ -67,6 +66,7 @@ export default function beadsPrime(pi) {
     if (!content || !content.trim()) {
       return;
     }
+    primed = true;
     return {
       message: {
         customType: "beads-prime",

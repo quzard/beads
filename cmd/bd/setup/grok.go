@@ -28,7 +28,7 @@ This repository tracks work with beads (` + "`bd`" + `). Grok loads every Markdo
 The beads section in ` + "`AGENTS.md`" + ` is the standing command reference.
 `
 
-const grokPrimeNote = `Grok ignores stdout from SessionStart, so .grok/hooks/beads.json does not inject context. .grok/rules/beads.md tells the session to run bd prime. Trust project hooks with /hooks-trust or grok --trust before they run.`
+const grokPrimeNote = `Grok ignores stdout from SessionStart, so .grok/hooks/beads.json does not inject context. .grok/rules/beads.md tells the session to run bd prime. Trust project hooks with /hooks-trust or grok --trust before they run. Grok also runs Claude hooks, so a workspace that already has bd setup claude will execute bd prime twice; the extra run is intentional for a Grok-only checkout and its stdout is still discarded.`
 
 var grokIntegration = agentsIntegration{
 	name:             "Grok",

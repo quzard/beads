@@ -4533,10 +4533,18 @@ func commitEmbeddedInitArtifacts(workDir string, quiet bool) {
 		// Also stage Codex and Cursor project integration files if created
 		// by setup. Cursor project hooks/rules are meant to be committed
 		// (a no-op git add if .cursor/ is gitignored in this repo).
-		for _, path := range []string{".agents", ".codex", ".cursor", ".grok", ".qoder", ".omp", ".factory"} {
+		for _, path := range []string{".agents", ".codex", ".cursor"} {
 			if _, statErr := os.Stat(filepath.Join(workDir, path)); statErr == nil {
 				codexCmd := initArtifactGitCommand(workDir, "add", path)
 				_ = codexCmd.Run()
+			}
+		}
+		// 只暂存 bd 写的钩子和规则，不把 .qoder / .grok / .omp / .factory 整目录加进去。
+		// 整目录会把 .qoder/settings.local.json 这类本地文件带进 init 提交。
+		for _, path := range setup.SessionPrimeCommitPaths() {
+			if _, statErr := os.Stat(filepath.Join(workDir, path)); statErr == nil {
+				hookCmd := initArtifactGitCommand(workDir, "add", path)
+				_ = hookCmd.Run()
 			}
 		}
 		// Also stage .gitignore if modified by EnsureProjectGitignore
