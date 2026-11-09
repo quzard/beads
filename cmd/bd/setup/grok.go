@@ -1,6 +1,12 @@
 package setup
 
-import "github.com/steveyegge/beads/internal/templates/agents"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/steveyegge/beads/internal/templates/agents"
+)
 
 // grokProjectRulesURL 是 Grok 项目规则的官方说明。
 // Grok 每次会话都会加载仓库里的 AGENTS.md，以及 .grok/rules/*.md。
@@ -21,14 +27,16 @@ const grokRulesBody = `<!-- beads-setup-managed -->
 
 This repository tracks work with beads (` + "`bd`" + `). Grok loads every Markdown file in ` + "`.grok/rules/`" + `.
 
-- Run ` + "`bd prime`" + ` at the start of a session and follow that workflow context.
-- ` + "`.grok/hooks/beads.json`" + ` runs ` + "`bd prime --hook-json`" + ` on SessionStart. Grok does not inject stdout from that event, so the hook output is not context.
-- Trust project hooks once with ` + "`/hooks-trust`" + ` or ` + "`grok --trust`" + ` before they run.
+- Run ` + "`bd prime`" + ` at the start of a session and follow that workflow context. Grok does not inject SessionStart stdout.
+- Grok also loads Claude hooks. When ` + "`.claude/settings.json`" + ` already runs ` + "`bd prime`" + `, this repo does not add a second SessionStart hook.
+- Otherwise ` + "`.grok/hooks/beads.json`" + ` runs ` + "`bd prime --hook-json`" + ` on SessionStart. Trust project hooks once with ` + "`/hooks-trust`" + ` or ` + "`grok --trust`" + `.
 
 The beads section in ` + "`AGENTS.md`" + ` is the standing command reference.
 `
 
-const grokPrimeNote = `Grok ignores stdout from SessionStart, so .grok/hooks/beads.json does not inject context. .grok/rules/beads.md tells the session to run bd prime. Trust project hooks with /hooks-trust or grok --trust before they run. Grok also runs Claude hooks, so a workspace that already has bd setup claude will execute bd prime twice; the extra run is intentional for a Grok-only checkout and its stdout is still discarded.`
+const grokPrimeNote = `Grok ignores stdout from SessionStart, so .grok/hooks/beads.json does not inject context. .grok/rules/beads.md tells the session to run bd prime. Trust project hooks with /hooks-trust or grok --trust before they run.`
+
+const grokUsesClaudeHookNote = `Skipped .grok/hooks/beads.json. .claude/settings.json already runs bd prime, and Grok loads Claude hooks, so a second SessionStart would run it twice. .grok/rules/beads.md still loads. Grok does not inject SessionStart stdout.`
 
 var grokIntegration = agentsIntegration{
 	name:             "Grok",
@@ -64,7 +72,7 @@ func installGrok(env agentsEnv) error {
 	if err := installAgents(env, grokIntegration); err != nil {
 		return err
 	}
-	return installSessionPrime(env, grokPrimeSpec())
+	return installGrokPrime(env)
 }
 
 // InstallGrokProjectTo 只装钩子和规则。bd init 已经按用户选的剖面写过 AGENTS.md，
@@ -72,6 +80,26 @@ func installGrok(env agentsEnv) error {
 func InstallGrokProjectTo(out ProjectInstallOutput) error {
 	env := grokEnvProvider()
 	env.stdout, env.stderr = out.stdout(), out.stderr()
+	return installGrokPrime(env)
+}
+
+// installGrokPrime 在项目 Claude 钩子已经会跑 bd prime 时不再写 Grok 的 SessionStart。
+// Grok 会读 .claude/settings.json，两份钩子会各跑一次。
+func installGrokPrime(env agentsEnv) error {
+	root := projectRoot(env)
+	if claudePrimeHookInstalled(root) {
+		path := primeAbs(root, grokHooksFile)
+		if _, err := os.Stat(path); err == nil {
+			if err := removePrimeHooks(env, root, grokPrimeSpec()); err != nil {
+				return err
+			}
+		}
+		spec := grokPrimeSpec()
+		spec.shape = ""
+		spec.hooksRel = ""
+		spec.note = grokUsesClaudeHookNote
+		return installSessionPrime(env, spec)
+	}
 	return installSessionPrime(env, grokPrimeSpec())
 }
 
@@ -81,11 +109,62 @@ func CheckGrok() error {
 
 func checkGrok(env agentsEnv) error {
 	sectionErr := checkAgents(env, grokIntegration)
-	primeErr := checkSessionPrime(env, grokPrimeSpec())
+	primeErr := checkGrokPrime(env)
 	if sectionErr != nil {
 		return sectionErr
 	}
 	return primeErr
+}
+
+func checkGrokPrime(env agentsEnv) error {
+	root := projectRoot(env)
+	spec := grokPrimeSpec()
+	if claudePrimeHookInstalled(root) {
+		config, exists, err := loadHooksFile(primeAbs(root, grokHooksFile))
+		if err != nil {
+			_, _ = fmt.Fprintf(env.stderr, "Error: Grok hooks: %v\n", err)
+			return err
+		}
+		if exists && primeHookCurrent(config, spec) {
+			_, _ = fmt.Fprintf(env.stdout, "✗ Grok SessionStart duplicates the Claude hook in .claude/settings.json\n")
+			_, _ = fmt.Fprintf(env.stdout, "  Run: %s\n", spec.setupCommand)
+			spec.shape = ""
+			spec.hooksRel = ""
+			if ruleErr := checkSessionPrime(env, spec); ruleErr != nil {
+				return ruleErr
+			}
+			return errSessionPrimeIncomplete
+		}
+		_, _ = fmt.Fprintln(env.stdout, "✓ Grok uses the Claude SessionStart hook in .claude/settings.json")
+		spec.shape = ""
+		spec.hooksRel = ""
+		return checkSessionPrime(env, spec)
+	}
+	return checkSessionPrime(env, spec)
+}
+
+// claudePrimeHookInstalled 看项目 .claude/settings.json 里有没有 bd prime 的 SessionStart。
+// Grok 会加载这份 Claude 钩子，再写一份 Grok 钩子就会跑两遍。
+func claudePrimeHookInstalled(root string) bool {
+	config, exists, err := loadHooksFile(filepath.Join(root, ".claude", "settings.json"))
+	if err != nil || !exists {
+		return false
+	}
+	hooks, err := readHooks(config, true)
+	if err != nil || hooks == nil {
+		return false
+	}
+	for _, command := range []string{
+		SessionPrimeCommand,
+		"bd prime --stealth --hook-json",
+		"bd prime",
+		"bd prime --stealth",
+	} {
+		if groupHasCommand(hooks, "SessionStart", command) {
+			return true
+		}
+	}
+	return false
 }
 
 func RemoveGrok() error {

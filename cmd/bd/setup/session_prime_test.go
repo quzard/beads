@@ -312,6 +312,84 @@ func TestProjectPrimeInstallSkipsAgentsSection(t *testing.T) {
 	}
 }
 
+func TestGrokSkipsHookWhenClaudePrimeExists(t *testing.T) {
+	stubDetectRenderOpts(t)
+	env, stdout, _ := newFactoryTestEnv(t)
+	root := filepath.Dir(env.agentsPath)
+	claude := filepath.Join(root, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(claude), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(claude, []byte("{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\"type\": \"command\", \"command\": \"bd prime --hook-json\"}\n        ]\n      }\n    ]\n  }\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	grokHook := filepath.Join(root, grokHooksFile)
+	if err := os.MkdirAll(filepath.Dir(grokHook), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(grokHook, []byte("{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\"type\": \"command\", \"command\": \"bd prime --hook-json\"}\n        ]\n      }\n    ]\n  }\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := installGrok(env); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(grokHook); !os.IsNotExist(err) {
+		t.Fatalf("grok hook still present: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, grokRulesFile)); err != nil {
+		t.Fatalf("rule missing: %v", err)
+	}
+	if !strings.Contains(stdout.String(), "Skipped .grok/hooks/beads.json") {
+		t.Fatalf("stdout:\n%s", stdout.String())
+	}
+	stdout.Reset()
+	if err := checkGrok(env); err != nil {
+		t.Fatalf("check: %v\n%s", err, stdout.String())
+	}
+}
+
+func TestOMPSkipsHooksWhenAncestorOMPExists(t *testing.T) {
+	stubDetectRenderOpts(t)
+	parent := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(parent, ".omp"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(parent, ".omp", "RULES.md"), []byte("# parent\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	child := filepath.Join(parent, "pkg")
+	if err := os.MkdirAll(child, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	var stdout, stderr strings.Builder
+	env := agentsEnv{
+		agentsPath: filepath.Join(child, "AGENTS.md"),
+		stdout:     &stdout,
+		stderr:     &stderr,
+	}
+	if err := installOMP(env); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(child, ".omp")); !os.IsNotExist(err) {
+		t.Fatalf("child .omp created and would shadow %s: %v", parent, err)
+	}
+	if !strings.Contains(stdout.String(), "Skipped .omp hooks") {
+		t.Fatalf("stdout:\n%s", stdout.String())
+	}
+	data, err := os.ReadFile(env.agentsPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "BEGIN BEADS INTEGRATION") {
+		t.Fatalf("AGENTS.md section missing:\n%s", data)
+	}
+	stdout.Reset()
+	if err := checkOMP(env); err != nil {
+		t.Fatalf("check: %v\n%s", stdout.String(), err)
+	}
+}
+
 func TestCheckSessionPrimeWithoutHooks(t *testing.T) {
 	stubDetectRenderOpts(t)
 	env, _, _ := newFactoryTestEnv(t)

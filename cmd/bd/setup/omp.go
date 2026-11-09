@@ -1,6 +1,13 @@
 package setup
 
-import "github.com/steveyegge/beads/internal/templates/agents"
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/steveyegge/beads/internal/git"
+	"github.com/steveyegge/beads/internal/templates/agents"
+)
 
 // ompContextFilesURL 是 omp 上下文文件的官方说明。
 // 仓库根目录 AGENTS.md 会在会话开始时加载。最近的非空 .omp/ 会截断继续向上查找
@@ -112,13 +119,26 @@ func installOMP(env agentsEnv) error {
 	if err := installAgents(env, ompIntegration); err != nil {
 		return err
 	}
-	return installSessionPrime(env, ompPrimeSpec())
+	return installOMPPrime(env)
 }
 
 // InstallOMPProjectTo 只装钩子和规则，不改写 init 已经写好的 AGENTS.md。
 func InstallOMPProjectTo(out ProjectInstallOutput) error {
 	env := ompEnvProvider()
 	env.stdout, env.stderr = out.stdout(), out.stderr()
+	return installOMPPrime(env)
+}
+
+// installOMPPrime 在上层已经有非空 .omp/ 时不在这里再建一份。
+// omp 走到最近的非空 .omp/ 就停，子目录新建 .omp/ 会盖住上层的 AGENTS.md 和 RULES.md。
+func installOMPPrime(env agentsEnv) error {
+	root := projectRoot(env)
+	if !nonEmptyDir(filepath.Join(root, ".omp")) {
+		if parent, ok := ancestorNonEmptyOMP(root); ok {
+			_, _ = fmt.Fprintf(env.stdout, "Skipped .omp hooks and rules: %s is already the nearest native directory. Creating .omp here would hide its AGENTS.md and RULES.md.\n", parent)
+			return nil
+		}
+	}
 	return installSessionPrime(env, ompPrimeSpec())
 }
 
@@ -128,11 +148,60 @@ func CheckOMP() error {
 
 func checkOMP(env agentsEnv) error {
 	sectionErr := checkAgents(env, ompIntegration)
+	root := projectRoot(env)
+	hookMissing := !FileExists(primeAbs(root, ompHookFile))
+	ruleMissing := !FileExists(primeAbs(root, ompRulesFile))
+	if hookMissing && ruleMissing && !nonEmptyDir(filepath.Join(root, ".omp")) {
+		if parent, ok := ancestorNonEmptyOMP(root); ok {
+			_, _ = fmt.Fprintf(env.stdout, "OMP hooks skipped: %s is the nearest native directory\n", parent)
+			return sectionErr
+		}
+	}
 	primeErr := checkSessionPrime(env, ompPrimeSpec())
 	if sectionErr != nil {
 		return sectionErr
 	}
 	return primeErr
+}
+
+func nonEmptyDir(path string) bool {
+	entries, err := os.ReadDir(path) // #nosec G304 -- bd 自己的配方目录
+	return err == nil && len(entries) > 0
+}
+
+// ancestorNonEmptyOMP 从 root 的父目录走到仓库根（没有仓库就走到家目录），
+// 找第一份非空 .omp/。root 自己的 .omp/ 不算上层。
+func ancestorNonEmptyOMP(root string) (string, bool) {
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return "", false
+	}
+	stop := ""
+	if repo, err := git.GetMainRepoRootFrom(abs); err == nil && repo != "" {
+		stop = repo
+	}
+	home, _ := os.UserHomeDir()
+	dir := filepath.Dir(abs)
+	for {
+		if dir == abs || dir == "." || dir == string(filepath.Separator) {
+			return "", false
+		}
+		if home != "" && sameDir(dir, home) {
+			return "", false
+		}
+		omp := filepath.Join(dir, ".omp")
+		if nonEmptyDir(omp) {
+			return omp, true
+		}
+		if stop != "" && sameDir(dir, stop) {
+			return "", false
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", false
+		}
+		dir = parent
+	}
 }
 
 func RemoveOMP() error {
