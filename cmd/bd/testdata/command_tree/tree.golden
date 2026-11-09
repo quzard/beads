@@ -6654,7 +6654,7 @@ bd setup
     | Setup integration files for AI editors and coding assistants.
     |
     | Recipes define where beads workflow instructions are written. Built-in recipes
-    | include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, and kilocode.
+    | include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, kilocode, grok, qoder, omp, and antigravity.
     |
     | Examples:
     |   bd setup cursor          # Install Cursor IDE integration (rules + agent hooks)

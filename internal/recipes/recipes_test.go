@@ -12,7 +12,7 @@ import (
 
 func TestBuiltinRecipes(t *testing.T) {
 	// Ensure all expected built-in recipes exist
-	expected := []string{"cursor", "windsurf", "cody", "kilocode", "kiro", "claude", "copilot", "gemini", "factory", "codex", "mux", "aider", "junie"}
+	expected := []string{"cursor", "windsurf", "cody", "kilocode", "kiro", "claude", "copilot", "gemini", "factory", "codex", "mux", "aider", "junie", "grok", "qoder", "omp", "antigravity"}
 
 	for _, name := range expected {
 		recipe, ok := BuiltinRecipes[name]
@@ -25,6 +25,39 @@ func TestBuiltinRecipes(t *testing.T) {
 		}
 		if recipe.Type == "" {
 			t.Errorf("recipe %s has empty Type", name)
+		}
+	}
+}
+
+// TestAgentsMDSectionRecipes 锁定截图里新增的四个 AGENTS.md 配方：
+// 它们必须是 section 类型、写到 AGENTS.md，并且 --list 的描述就是这一句。
+func TestAgentsMDSectionRecipes(t *testing.T) {
+	want := map[string]string{
+		"grok":        "Grok CLI AGENTS.md section",
+		"qoder":       "Qoder CLI AGENTS.md section",
+		"omp":         "OMP AGENTS.md section",
+		"antigravity": "Antigravity AGENTS.md section",
+	}
+	for name, desc := range want {
+		recipe, ok := BuiltinRecipes[name]
+		if !ok {
+			t.Errorf("missing built-in recipe %s", name)
+			continue
+		}
+		if recipe.Type != TypeSection {
+			t.Errorf("%s type = %q, want section", name, recipe.Type)
+		}
+		if recipe.Path != "AGENTS.md" {
+			t.Errorf("%s path = %q, want AGENTS.md", name, recipe.Path)
+		}
+		if recipe.Description != desc {
+			t.Errorf("%s description = %q, want %q", name, recipe.Description, desc)
+		}
+		if recipe.Name == "" {
+			t.Errorf("%s has empty Name", name)
+		}
+		if recipe.Workspace {
+			t.Errorf("%s is marked Workspace", name)
 		}
 	}
 }
@@ -77,7 +110,7 @@ func TestListRecipeNames(t *testing.T) {
 	for _, name := range names {
 		found[name] = true
 	}
-	for _, expected := range []string{"cursor", "claude", "aider", "mux"} {
+	for _, expected := range []string{"cursor", "claude", "aider", "mux", "grok", "qoder", "omp", "antigravity"} {
 		if !found[expected] {
 			t.Errorf("expected recipe %s not in list", expected)
 		}

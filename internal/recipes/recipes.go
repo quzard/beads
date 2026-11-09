@@ -130,6 +130,32 @@ var BuiltinRecipes = map[string]Recipe{
 		Type:        TypeSection,
 		Description: "OpenCode AGENTS.md section",
 	},
+	// grok、qoder、omp、antigravity 与 factory/opencode 一样，把完整 beads 段写入项目 AGENTS.md。
+	// 实际安装在 cmd/bd/setup 里按 TypeSection 单独分发，不能走通用的整文件覆盖。
+	"grok": {
+		Name:        "Grok",
+		Path:        "AGENTS.md",
+		Type:        TypeSection,
+		Description: "Grok CLI AGENTS.md section",
+	},
+	"qoder": {
+		Name:        "Qoder CLI",
+		Path:        "AGENTS.md",
+		Type:        TypeSection,
+		Description: "Qoder CLI AGENTS.md section",
+	},
+	"omp": {
+		Name:        "OMP",
+		Path:        "AGENTS.md",
+		Type:        TypeSection,
+		Description: "OMP AGENTS.md section",
+	},
+	"antigravity": {
+		Name:        "Antigravity",
+		Path:        "AGENTS.md",
+		Type:        TypeSection,
+		Description: "Antigravity AGENTS.md section",
+	},
 	"aider": {
 		Name:        "Aider",
 		Type:        TypeMultiFile,
