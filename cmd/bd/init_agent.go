@@ -11,6 +11,21 @@ import (
 	"github.com/steveyegge/beads/internal/ui"
 )
 
+// initAgentsProfile 决定 bd init 写入 AGENTS.md 的剖面。
+// 用户没传 --agents-profile 时用 full：这段和 bd setup grok、qoder、omp、
+// antigravity、factory、opencode 写入的是同一段托管内容，初始化后不必再跑这些配方。
+// 显式传入（包括空字符串）则尊重用户：minimal 是指向 bd prime 的短段。
+// 已有文件里若已经是 full，updateAgentFile 仍会保留 full，不会被 minimal 降级。
+func initAgentsProfile(flagValue string, flagSet bool) agents.Profile {
+	if flagSet {
+		if flagValue == "" {
+			return agents.ProfileMinimal
+		}
+		return agents.Profile(flagValue)
+	}
+	return agents.ProfileFull
+}
+
 // addAgentsInstructions creates or updates the agents file with embedded template content.
 // agentFile is the target filename (e.g. "AGENTS.md" or "BEADS.md").
 // If templatePath is non-empty, the custom template file is used instead of the embedded default.

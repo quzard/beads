@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"testing"
+
+	"github.com/steveyegge/beads/internal/templates/agents"
 )
 
 // sectionRecipe 是写入同一份 AGENTS.md 托管段的配方。安装、检查、删除都走 installAgents。
@@ -247,6 +249,55 @@ func TestAgentsSectionRecipesShareOneSection(t *testing.T) {
 	}
 	if !strings.Contains(stdout.String(), "already has the current beads section") {
 		t.Errorf("later recipes should see the grok section as current:\n%s", stdout.String())
+	}
+}
+
+// TestInitFullSectionSatisfiesAgentsRecipes 确认 bd init 默认写入的 full 段
+// 能通过这些配方的 --check。无 remote 的 RenderOpts 与没有 Dolt remote 的 init 一致。
+func TestInitFullSectionSatisfiesAgentsRecipes(t *testing.T) {
+	opts := agents.RenderOpts{}
+	orig := detectRenderOptsImpl
+	detectRenderOptsImpl = func() agents.RenderOpts { return opts }
+	t.Cleanup(func() { detectRenderOptsImpl = orig })
+
+	content := agents.EmbeddedDefaultWithOpts(opts)
+	replaced, _, err := agents.ReplaceSectionWithOpts(content, agents.ProfileFull, opts)
+	if err != nil {
+		t.Fatalf("replace section: %v", err)
+	}
+	env, stdout, _ := newFactoryTestEnv(t)
+	if err := os.WriteFile(env.agentsPath, []byte(replaced), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, recipe := range append(agentsSectionRecipes(), sectionRecipe{
+		name:    "Factory.ai (Droid)",
+		check:   checkFactory,
+		install: installFactory,
+	}, sectionRecipe{
+		name:  "OpenCode",
+		check: checkOpenCode,
+	}) {
+		t.Run(recipe.name, func(t *testing.T) {
+			stdout.Reset()
+			if err := recipe.check(env); err != nil {
+				t.Fatalf("check: %v\n%s", err, stdout.String())
+			}
+			if !strings.Contains(stdout.String(), "(current)") {
+				t.Fatalf("stdout:\n%s", stdout.String())
+			}
+		})
+	}
+
+	minimal, _, err := agents.ReplaceSectionWithOpts(content, agents.ProfileMinimal, opts)
+	if err != nil {
+		t.Fatalf("replace minimal: %v", err)
+	}
+	if err := os.WriteFile(env.agentsPath, []byte(minimal), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	stdout.Reset()
+	if err := checkGrok(env); !errors.Is(err, errBeadsSectionStale) {
+		t.Fatalf("minimal section check = %v, want stale\n%s", err, stdout.String())
 	}
 }
 

@@ -545,6 +545,15 @@ With --stealth: configures per-repository git settings for invisible beads usage
   Perfect for personal use without affecting repo collaborators.
   To set up a specific AI tool, run: bd setup <claude|cursor|aider|...> --stealth
 
+By default, init installs project agent integrations. It does not detect which
+agents are on the machine; this set is always installed unless --skip-agents
+or --stealth is set (a bare repository skips it too):
+  • AGENTS.md full beads section, read by Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode
+  • Claude Code hooks and CLAUDE.md
+  • Codex skill, hooks, and AGENTS.md guidance
+  • Cursor rules and hooks
+--agents-profile=minimal writes a short AGENTS.md pointer to bd prime instead of the full section. Claude, Codex, and Cursor setup still runs.
+
 By default, beads uses an embedded Dolt engine (no external server needed).
 Pass --server to use an external dolt sql-server instead. In server mode,
 set connection details with --server-host, --server-port, and --server-user.
@@ -2394,7 +2403,8 @@ Non-interactive mode (--non-interactive or BD_NON_INTERACTIVE=1):
 		if !stealth && !skipAgents {
 			agentsTemplate, _ := cmd.Flags().GetString("agents-template")
 			agentsProfileStr, _ := cmd.Flags().GetString("agents-profile")
-			agentsProfile := agents.Profile(agentsProfileStr)
+			// 未指定时写 full，和 bd setup 的 AGENTS.md 配方是同一段。
+			agentsProfile := initAgentsProfile(agentsProfileStr, cmd.Flags().Changed("agents-profile"))
 			agentsFile, _ := cmd.Flags().GetString("agents-file")
 
 			// Validate and persist custom agents filename
@@ -2421,11 +2431,15 @@ Non-interactive mode (--non-interactive or BD_NON_INTERACTIVE=1):
 			} else {
 				renderOpts := agents.RenderOpts{HasRemote: shouldConfigureInitDoltRemote(syncURL, syncFromRemote, syncURLFromConfig, syncURLFromGitOrigin, isDoltLocalOnly()), NoPush: config.GetBool("no-push")}
 				addAgentsInstructions(resolvedAgentsFile, !quiet, agentsTemplate, agentsProfile, renderOpts)
+				if !quiet && agentsProfile == agents.ProfileFull {
+					fmt.Printf("  %s %s beads section covers Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode\n", ui.RenderPass("✓"), resolvedAgentsFile)
+				}
 			}
 		}
 
 		// Auto-setup Claude hooks, Codex, and Cursor project integration. Skip in
-		// stealth mode or when agents are skipped.
+		// stealth mode or when agents are skipped. The AGENTS.md section above is
+		// the setup for agents that only read that file.
 		if !stealth && !skipAgents && !isBareGitRepo() {
 			// --quiet drops the installers' progress like every other init
 			// message; failures still reach stderr (the installers' own
@@ -2562,7 +2576,7 @@ func init() {
 	initCmd.Flags().Bool("stealth", false, "Enable stealth mode: keep beads files out of git via .git/info/exclude (sets no-git-ops)")
 	initCmd.Flags().Bool("setup-exclude", false, "Configure .git/info/exclude to keep beads files local (for forks)")
 	initCmd.Flags().Bool("skip-hooks", false, "Skip git hooks installation")
-	initCmd.Flags().Bool("skip-agents", false, "Skip AGENTS.md and Claude/Codex/Cursor setup generation")
+	initCmd.Flags().Bool("skip-agents", false, "Skip AGENTS.md and Claude/Codex/Cursor setup")
 	initCmd.Flags().Bool("force", false, "Deprecated alias for --reinit-local. Bypasses only the LOCAL data-safety guard; does NOT authorize remote divergence or recreating a missing server-mode database (see 'bd help init-safety').")
 	initCmd.Flags().Bool("reinit-local", false, "Re-initialize local .beads/ over existing local data. Does NOT authorize remote divergence (see --discard-remote) or recreating a missing server-mode database (see --recreate-missing).")
 	initCmd.Flags().Bool("discard-remote", false, "Authorize discarding the configured remote's Dolt history when re-initializing. Requires --destroy-token in non-interactive mode; see 'bd help init-safety'.")
@@ -2571,7 +2585,7 @@ func init() {
 	initCmd.Flags().Bool("init-if-missing", false, "If the workspace is already initialized, skip init and exit 0 instead of failing (idempotent init for scaffolds)")
 	initCmd.Flags().String("destroy-token", "", "Explicit confirmation token for destructive re-init in non-interactive mode (format: 'DESTROY-<prefix>')")
 	initCmd.Flags().String("agents-template", "", "Path to custom AGENTS.md template (overrides embedded default)")
-	initCmd.Flags().String("agents-profile", "", "AGENTS.md profile: 'minimal' (default, pointer to bd prime) or 'full' (complete command reference)")
+	initCmd.Flags().String("agents-profile", "", "AGENTS.md profile: 'full' (default; command reference for Grok, Qoder, OMP, Antigravity, Factory, and OpenCode) or 'minimal' (pointer to bd prime)")
 	initCmd.Flags().String("agents-file", "", "Custom filename for agent instructions (default: AGENTS.md)")
 	initCmd.Flags().String("remote", "", "Dolt remote URL to clone from and persist as sync.remote")
 

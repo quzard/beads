@@ -9,6 +9,21 @@ import (
 	"github.com/steveyegge/beads/internal/templates/agents"
 )
 
+func TestInitAgentsProfile(t *testing.T) {
+	if got := initAgentsProfile("", false); got != agents.ProfileFull {
+		t.Errorf("unset profile = %q, want full", got)
+	}
+	if got := initAgentsProfile("minimal", true); got != agents.ProfileMinimal {
+		t.Errorf("explicit minimal = %q, want minimal", got)
+	}
+	if got := initAgentsProfile("full", true); got != agents.ProfileFull {
+		t.Errorf("explicit full = %q, want full", got)
+	}
+	if got := initAgentsProfile("", true); got != agents.ProfileMinimal {
+		t.Errorf("explicit empty profile = %q, want minimal", got)
+	}
+}
+
 // TestUpdateAgentFileQuickReferenceFollowsRemote pins that a new AGENTS.md
 // written by `bd init` lists `bd dolt push` in its Quick Reference exactly
 // when its managed section does: only with a Dolt remote configured and the
