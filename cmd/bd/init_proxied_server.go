@@ -19,6 +19,7 @@ import (
 	"github.com/steveyegge/beads/internal/storage/fs"
 	"github.com/steveyegge/beads/internal/storage/git"
 	"github.com/steveyegge/beads/internal/storage/uow"
+	"github.com/steveyegge/beads/internal/templates/agents"
 	"github.com/steveyegge/beads/internal/ui"
 	"github.com/steveyegge/beads/internal/workapi"
 	"github.com/steveyegge/beads/issueops"
@@ -678,6 +679,8 @@ func runInitProxiedServerTail(cmd *cobra.Command, ctx context.Context, in initPr
 	if !in.stealth && !in.skipAgents {
 		agentsTemplate, _ := cmd.Flags().GetString("agents-template")
 		agentsProfileStr, _ := cmd.Flags().GetString("agents-profile")
+		// 与直接 init 相同：未指定时写 full，显式 minimal 才是短段。
+		agentsProfile := initAgentsProfile(agentsProfileStr, cmd.Flags().Changed("agents-profile"))
 		agentsFile, _ := cmd.Flags().GetString("agents-file")
 		if agentsFile != "" {
 			if err := config.ValidateAgentsFile(agentsFile); err != nil {
@@ -701,10 +704,13 @@ func runInitProxiedServerTail(cmd *cobra.Command, ctx context.Context, in initPr
 				File:         resolvedAgentsFile,
 				Verbose:      !in.quiet,
 				TemplatePath: agentsTemplate,
-				Profile:      agentsProfileStr,
+				Profile:      string(agentsProfile),
 				HasRemote:    t.remoteURL != "",
 				NoPush:       config.GetBool("no-push"),
 			})
+			if !in.quiet && agentsProfile == agents.ProfileFull {
+				fmt.Printf("  %s %s beads section covers Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode\n", ui.RenderPass("✓"), resolvedAgentsFile)
+			}
 			// As in direct init: --quiet drops the installer's progress,
 			// a failure still reaches stderr.
 			if err := t.fsUseCase.InstallClaudeProject(ctx, in.stealth, in.quiet); err != nil {

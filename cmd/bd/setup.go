@@ -36,7 +36,7 @@ var setupCmd = &cobra.Command{
 	Long: `Setup integration files for AI editors and coding assistants.
 
 Recipes define where beads workflow instructions are written. Built-in recipes
-include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, and kilocode.
+include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, kilocode, grok, qoder, omp, and antigravity.
 
 Examples:
   bd setup cursor          # Install Cursor IDE integration (rules + agent hooks)
@@ -272,6 +272,14 @@ func runRecipe(name string) error {
 		return runCursorRecipe()
 	case "junie":
 		return runJunieRecipe()
+	case "grok":
+		return runGrokRecipe()
+	case "qoder":
+		return runQoderRecipe()
+	case "omp":
+		return runOMPRecipe()
+	case "antigravity":
+		return runAntigravityRecipe()
 	}
 
 	recipe, err := lookupSetupRecipe(name)
@@ -495,6 +503,50 @@ func runJunieRecipe() error {
 		return translateSetupError(setup.RemoveJunie())
 	default:
 		return translateSetupError(setup.InstallJunie())
+	}
+}
+
+func runGrokRecipe() error {
+	switch {
+	case setupCheck:
+		return translateSetupError(setup.CheckGrok())
+	case setupRemove:
+		return translateSetupError(setup.RemoveGrok())
+	default:
+		return translateSetupError(setup.InstallGrok())
+	}
+}
+
+func runQoderRecipe() error {
+	switch {
+	case setupCheck:
+		return translateSetupError(setup.CheckQoder())
+	case setupRemove:
+		return translateSetupError(setup.RemoveQoder())
+	default:
+		return translateSetupError(setup.InstallQoder())
+	}
+}
+
+func runOMPRecipe() error {
+	switch {
+	case setupCheck:
+		return translateSetupError(setup.CheckOMP())
+	case setupRemove:
+		return translateSetupError(setup.RemoveOMP())
+	default:
+		return translateSetupError(setup.InstallOMP())
+	}
+}
+
+func runAntigravityRecipe() error {
+	switch {
+	case setupCheck:
+		return translateSetupError(setup.CheckAntigravity())
+	case setupRemove:
+		return translateSetupError(setup.RemoveAntigravity())
+	default:
+		return translateSetupError(setup.InstallAntigravity())
 	}
 }
 

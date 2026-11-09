@@ -3689,6 +3689,15 @@ bd init
     |   Perfect for personal use without affecting repo collaborators.
     |   To set up a specific AI tool, run: bd setup <claude|cursor|aider|...> --stealth
     |
+    | By default, init installs project agent integrations. It does not detect which
+    | agents are on the machine; this set is always installed unless --skip-agents
+    | or --stealth is set (a bare repository skips it too):
+    |   • AGENTS.md full beads section, read by Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode
+    |   • Claude Code hooks and CLAUDE.md
+    |   • Codex skill, hooks, and AGENTS.md guidance
+    |   • Cursor rules and hooks
+    | --agents-profile=minimal writes a short AGENTS.md pointer to bd prime instead of the full section. Claude, Codex, and Cursor setup still runs.
+    |
     | By default, beads uses an embedded Dolt engine (no external server needed).
     | Pass --server to use an external dolt sql-server instead. In server mode,
     | set connection details with --server-host, --server-port, and --server-user.
@@ -3708,7 +3717,7 @@ bd init
     |   • --contributor and --team flags are rejected (wizards require interaction)
     |   Also auto-detected when stdin is not a terminal or CI=true is set.
   flag --agents-file type=string default="" usage="Custom filename for agent instructions (default: AGENTS.md)"
-  flag --agents-profile type=string default="" usage="AGENTS.md profile: 'minimal' (default, pointer to bd prime) or 'full' (complete command reference)"
+  flag --agents-profile type=string default="" usage="AGENTS.md profile: 'full' (default; command reference for Grok, Qoder, OMP, Antigravity, Factory, and OpenCode) or 'minimal' (pointer to bd prime)"
   flag --agents-template type=string default="" usage="Path to custom AGENTS.md template (overrides embedded default)"
   flag --backend type=string default="" usage="Storage backend: dolt (default). Removed backends (postgres, mysql, sqlite) print migration guidance."
   flag --contributor type=bool default="false" usage="Run OSS contributor setup wizard"
@@ -3755,7 +3764,7 @@ bd init
   flag --server-user type=string default="" usage="Dolt server MySQL user (default: root)"
   flag --setup-exclude type=bool default="false" usage="Configure .git/info/exclude to keep beads files local (for forks)"
   flag --shared-server type=bool default="false" usage="Enable shared Dolt server mode (all projects share one server at ~/.beads/shared-server/)"
-  flag --skip-agents type=bool default="false" usage="Skip AGENTS.md and Claude/Codex/Cursor setup generation"
+  flag --skip-agents type=bool default="false" usage="Skip AGENTS.md and Claude/Codex/Cursor setup"
   flag --skip-hooks type=bool default="false" usage="Skip git hooks installation"
   flag --sqlite-path type=string default="" hidden usage="Legacy SQLite database file (removed backend compatibility only)"
   flag --stealth type=bool default="false" usage="Enable stealth mode: keep beads files out of git via .git/info/exclude (sets no-git-ops)"
@@ -5547,15 +5556,16 @@ bd onboard
     | to configure a different filename (e.g. BEADS.md).
     |
     | This outputs a small (~10 line) snippet that points to 'bd prime' for full
-    | workflow context. This is the same minimal profile that 'bd init' generates
-    | by default. This approach:
+    | workflow context. 'bd init' writes the full command reference into AGENTS.md
+    | by default; pass --agents-profile=minimal for this shorter pointer. This approach:
     |
     |   • Keeps your agent file lean (doesn't bloat with instructions)
     |   • bd prime provides dynamic, always-current workflow details
     |   • Hooks auto-inject bd prime at session start
     |
-    | For agents or environments that do not auto-inject hook output, use
-    | 'bd init --agents-profile=full' to embed the complete command reference.
+    | Agents that only read AGENTS.md (Grok, Qoder CLI, OMP, Antigravity, Factory
+    | Droid, OpenCode) get that full section from 'bd init'. Use this snippet when
+    | you want the short pointer instead.
 
 bd orphans
   use: "orphans"
@@ -6654,7 +6664,7 @@ bd setup
     | Setup integration files for AI editors and coding assistants.
     |
     | Recipes define where beads workflow instructions are written. Built-in recipes
-    | include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, and kilocode.
+    | include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, kilocode, grok, qoder, omp, and antigravity.
     |
     | Examples:
     |   bd setup cursor          # Install Cursor IDE integration (rules + agent hooks)

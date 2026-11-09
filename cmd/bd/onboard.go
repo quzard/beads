@@ -116,15 +116,16 @@ By default, the agent instructions file is AGENTS.md. Use 'bd init --agents-file
 to configure a different filename (e.g. BEADS.md).
 
 This outputs a small (~10 line) snippet that points to 'bd prime' for full
-workflow context. This is the same minimal profile that 'bd init' generates
-by default. This approach:
+workflow context. 'bd init' writes the full command reference into AGENTS.md
+by default; pass --agents-profile=minimal for this shorter pointer. This approach:
 
   • Keeps your agent file lean (doesn't bloat with instructions)
   • bd prime provides dynamic, always-current workflow details
   • Hooks auto-inject bd prime at session start
 
-For agents or environments that do not auto-inject hook output, use
-'bd init --agents-profile=full' to embed the complete command reference.`,
+Agents that only read AGENTS.md (Grok, Qoder CLI, OMP, Antigravity, Factory
+Droid, OpenCode) get that full section from 'bd init'. Use this snippet when
+you want the short pointer instead.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {
