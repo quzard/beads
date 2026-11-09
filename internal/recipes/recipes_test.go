@@ -33,10 +33,10 @@ func TestBuiltinRecipes(t *testing.T) {
 // 它们必须是 section 类型、写到 AGENTS.md，并且 --list 的描述就是这一句。
 func TestAgentsMDSectionRecipes(t *testing.T) {
 	want := map[string]string{
-		"grok":        "Grok CLI AGENTS.md section",
-		"qoder":       "Qoder CLI AGENTS.md section",
-		"omp":         "OMP AGENTS.md section",
-		"antigravity": "Antigravity AGENTS.md section",
+		"grok":        "Grok CLI AGENTS.md section + SessionStart hook and rule",
+		"qoder":       "Qoder CLI AGENTS.md section + SessionStart hook",
+		"omp":         "OMP AGENTS.md section + session hook and always-on rule",
+		"antigravity": "Antigravity AGENTS.md section + SessionStart hook and rule",
 	}
 	for name, desc := range want {
 		recipe, ok := BuiltinRecipes[name]

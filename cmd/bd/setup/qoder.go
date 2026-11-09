@@ -3,27 +3,58 @@ package setup
 import "github.com/steveyegge/beads/internal/templates/agents"
 
 // qoderMemoryURL 是 Qoder CLI 记忆文件的官方说明。
-// Qoder CLI 默认把项目 AGENTS.md 当作静态记忆（context.fileName 的默认值就是 AGENTS.md），
-// 也会读 ~/.qoder/AGENTS.md 和 .qoder/rules/。国际版与 Qoder CN 都加载项目级 AGENTS.md，
-// 因此一份仓库文件两边都生效。用户若把 context.fileName 改成别的名字，这段就不会被读到。
+// 项目 AGENTS.md 是默认静态记忆；.qoder/rules/**/*.md 是按主题拆开的规则。
+// https://docs.qoder.com/cli/memory
 const qoderMemoryURL = "https://docs.qoder.com/cli/memory"
 
+// qoderHooksURL 是 Qoder CLI 钩子的官方说明。项目钩子在 .qoder/settings.json。
+// SessionStart 会把 hookSpecificOutput.additionalContext（或纯文本 stdout）注入会话，
+// source 含 startup/resume/clear/compact，和 Claude 一样可以在压缩后再注入。
+// https://docs.qoder.com/cli/hooks
+const qoderHooksURL = "https://docs.qoder.com/cli/hooks"
+
+const qoderPrimeNote = `Qoder injects SessionStart stdout. .qoder/settings.json runs bd prime --hook-json, including after compaction (source=compact). bd must be on PATH.`
+
 var qoderIntegration = agentsIntegration{
-	name:         "Qoder CLI",
-	setupCommand: "bd setup qoder",
-	readHint:     "Qoder CLI reads project AGENTS.md when a session starts. Restart Qoder CLI if it is already running.",
-	docsURL:      qoderMemoryURL,
-	profile:      agents.ProfileFull,
+	name:             "Qoder CLI",
+	setupCommand:     "bd setup qoder",
+	readHint:         "Qoder CLI reads project AGENTS.md and runs the SessionStart hook in .qoder/settings.json. Restart Qoder CLI if it is already running.",
+	docsURL:          qoderMemoryURL,
+	profile:          agents.ProfileFull,
+	skipNoConfigLine: true,
 }
 
 var qoderEnvProvider = defaultAgentsEnv
+
+func qoderPrimeSpec() sessionPrimeSpec {
+	return sessionPrimeSpec{
+		name:         "Qoder CLI",
+		setupCommand: qoderIntegration.setupCommand,
+		shape:        primeShapeClaude,
+		wrapped:      true,
+		hooksRel:     qoderSettingsFile,
+		command:      SessionPrimeCommand,
+		docsURL:      qoderHooksURL,
+		note:         qoderPrimeNote,
+	}
+}
 
 func InstallQoder() error {
 	return installQoder(qoderEnvProvider())
 }
 
 func installQoder(env agentsEnv) error {
-	return installAgents(env, qoderIntegration)
+	if err := installAgents(env, qoderIntegration); err != nil {
+		return err
+	}
+	return installSessionPrime(env, qoderPrimeSpec())
+}
+
+// InstallQoderProjectTo 只装 SessionStart 钩子，不改写 init 已经写好的 AGENTS.md。
+func InstallQoderProjectTo(out ProjectInstallOutput) error {
+	env := qoderEnvProvider()
+	env.stdout, env.stderr = out.stdout(), out.stderr()
+	return installSessionPrime(env, qoderPrimeSpec())
 }
 
 func CheckQoder() error {
@@ -31,7 +62,12 @@ func CheckQoder() error {
 }
 
 func checkQoder(env agentsEnv) error {
-	return checkAgents(env, qoderIntegration)
+	sectionErr := checkAgents(env, qoderIntegration)
+	primeErr := checkSessionPrime(env, qoderPrimeSpec())
+	if sectionErr != nil {
+		return sectionErr
+	}
+	return primeErr
 }
 
 func RemoveQoder() error {
@@ -39,5 +75,10 @@ func RemoveQoder() error {
 }
 
 func removeQoder(env agentsEnv) error {
-	return removeAgents(env, qoderIntegration)
+	primeErr := removeSessionPrime(env, qoderPrimeSpec())
+	sectionErr := removeAgents(env, qoderIntegration)
+	if primeErr != nil {
+		return primeErr
+	}
+	return sectionErr
 }

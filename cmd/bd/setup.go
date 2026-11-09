@@ -38,6 +38,8 @@ var setupCmd = &cobra.Command{
 Recipes define where beads workflow instructions are written. Built-in recipes
 include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, kilocode, grok, qoder, omp, and antigravity.
 
+grok, qoder, omp, antigravity, and factory keep an AGENTS.md section and also install a native SessionStart (or session-start) hook. Where that hook cannot inject text, the recipe adds a thin rules file.
+
 Examples:
   bd setup cursor          # Install Cursor IDE integration (rules + agent hooks)
   bd setup cursor --global # Install global Cursor hooks (~/.cursor/hooks.json)

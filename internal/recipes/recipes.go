@@ -110,7 +110,7 @@ var BuiltinRecipes = map[string]Recipe{
 		Name:        "Factory.ai (Droid)",
 		Path:        "AGENTS.md",
 		Type:        TypeSection,
-		Description: "Factory Droid AGENTS.md section",
+		Description: "Factory Droid AGENTS.md section + SessionStart hook",
 	},
 	"codex": {
 		Name:        "Codex CLI",
@@ -130,31 +130,32 @@ var BuiltinRecipes = map[string]Recipe{
 		Type:        TypeSection,
 		Description: "OpenCode AGENTS.md section",
 	},
-	// grok、qoder、omp、antigravity 与 factory/opencode 一样，把完整 beads 段写入项目 AGENTS.md。
-	// 实际安装在 cmd/bd/setup 里按 TypeSection 单独分发，不能走通用的整文件覆盖。
+	// grok、qoder、omp、antigravity、factory 的 AGENTS.md 段仍走 TypeSection 专用分发，
+	// 不能落到通用的整文件覆盖。钩子和规则由 cmd/bd/setup 在写完段之后另外安装，
+	// --list 的描述把这两部分都算进去。
 	"grok": {
 		Name:        "Grok",
 		Path:        "AGENTS.md",
 		Type:        TypeSection,
-		Description: "Grok CLI AGENTS.md section",
+		Description: "Grok CLI AGENTS.md section + SessionStart hook and rule",
 	},
 	"qoder": {
 		Name:        "Qoder CLI",
 		Path:        "AGENTS.md",
 		Type:        TypeSection,
-		Description: "Qoder CLI AGENTS.md section",
+		Description: "Qoder CLI AGENTS.md section + SessionStart hook",
 	},
 	"omp": {
 		Name:        "OMP",
 		Path:        "AGENTS.md",
 		Type:        TypeSection,
-		Description: "OMP AGENTS.md section",
+		Description: "OMP AGENTS.md section + session hook and always-on rule",
 	},
 	"antigravity": {
 		Name:        "Antigravity",
 		Path:        "AGENTS.md",
 		Type:        TypeSection,
-		Description: "Antigravity AGENTS.md section",
+		Description: "Antigravity AGENTS.md section + SessionStart hook and rule",
 	},
 	"aider": {
 		Name:        "Aider",

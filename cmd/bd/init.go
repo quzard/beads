@@ -505,7 +505,7 @@ func homeDirRefusalMessage(cwd string) string {
   Why: init sets up the directory it runs in as a project: it runs
        'git init' there unless it finds a repository, and installs agent
        files (CLAUDE.md, AGENTS.md, .gitignore, .claude/, .codex/,
-       .cursor/, .agents/). In your home directory most of those are
+       .cursor/, .agents/, .grok/, .qoder/, .omp/, .factory/). In your home directory most of those are
        user-wide agent settings, so bd's hooks would run in every project.
        A project is virtually never the home directory itself.
 
@@ -552,7 +552,8 @@ or --stealth is set (a bare repository skips it too):
   • Claude Code hooks and CLAUDE.md
   • Codex skill, hooks, and AGENTS.md guidance
   • Cursor rules and hooks
---agents-profile=minimal writes a short AGENTS.md pointer to bd prime instead of the full section. Claude, Codex, and Cursor setup still runs.
+  • Grok, Qoder, OMP, Antigravity, and Factory SessionStart-style hooks (and a thin rule where the hook cannot inject context)
+--agents-profile=minimal writes a short AGENTS.md pointer to bd prime instead of the full section. Claude, Codex, Cursor, and those SessionStart hooks still run. The minimal section is not upgraded.
 
 By default, beads uses an embedded Dolt engine (no external server needed).
 Pass --server to use an external dolt sql-server instead. In server mode,
@@ -2437,9 +2438,11 @@ Non-interactive mode (--non-interactive or BD_NON_INTERACTIVE=1):
 			}
 		}
 
-		// Auto-setup Claude hooks, Codex, and Cursor project integration. Skip in
-		// stealth mode or when agents are skipped. The AGENTS.md section above is
-		// the setup for agents that only read that file.
+		// Auto-setup Claude, Codex, Cursor, and the SessionStart hooks for
+		// Grok, Qoder, OMP, Antigravity, and Factory. Skip in stealth mode or
+		// when agents are skipped. The AGENTS.md section above stays the
+		// standing instructions; the extra installers only add hooks and rules
+		// so --agents-profile=minimal is not rewritten to the full section.
 		if !stealth && !skipAgents && !isBareGitRepo() {
 			// --quiet drops the installers' progress like every other init
 			// message; failures still reach stderr (the installers' own
@@ -2460,6 +2463,7 @@ Non-interactive mode (--non-interactive or BD_NON_INTERACTIVE=1):
 				fmt.Fprintf(os.Stderr, "Warning: failed to setup Cursor integration: %v\n", err)
 				// Non-fatal - continue with init
 			}
+			installSessionPrimeProjects(installOut)
 		}
 
 		// Not under keepHomeClean: the repository git finds from the home is
@@ -4482,6 +4486,22 @@ func resolveInitDoltMode(proxiedFlag, sharedFlag, serverFlag bool) string {
 	return "embedded"
 }
 
+// installSessionPrimeProjects 给已经写好 AGENTS.md 的 init 补上 Grok、Qoder、
+// OMP、Antigravity、Factory 的会话启动钩子（以及钩子灌不进上下文时的薄规则）。
+// 不调用完整的 bd setup 配方，免得 --agents-profile=minimal 被 full 段盖掉。
+func installSessionPrimeProjects(out setup.ProjectInstallOutput) {
+	install := func(name string, fn func(setup.ProjectInstallOutput) error) {
+		if err := fn(out); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: failed to setup %s integration: %v\n", name, err)
+		}
+	}
+	install("Grok", setup.InstallGrokProjectTo)
+	install("Qoder", setup.InstallQoderProjectTo)
+	install("OMP", setup.InstallOMPProjectTo)
+	install("Antigravity", setup.InstallAntigravityProjectTo)
+	install("Factory", setup.InstallFactoryProjectTo)
+}
+
 // commitEmbeddedInitArtifacts stages the local init artifacts and preserves the
 // optional-add and nonfatal commit behavior of the embedded bootstrap.
 func commitEmbeddedInitArtifacts(workDir string, quiet bool) {
@@ -4513,7 +4533,7 @@ func commitEmbeddedInitArtifacts(workDir string, quiet bool) {
 		// Also stage Codex and Cursor project integration files if created
 		// by setup. Cursor project hooks/rules are meant to be committed
 		// (a no-op git add if .cursor/ is gitignored in this repo).
-		for _, path := range []string{".agents", ".codex", ".cursor"} {
+		for _, path := range []string{".agents", ".codex", ".cursor", ".grok", ".qoder", ".omp", ".factory"} {
 			if _, statErr := os.Stat(filepath.Join(workDir, path)); statErr == nil {
 				codexCmd := initArtifactGitCommand(workDir, "add", path)
 				_ = codexCmd.Run()

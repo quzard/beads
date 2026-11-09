@@ -269,15 +269,41 @@ func TestInitFullSectionSatisfiesAgentsRecipes(t *testing.T) {
 	if err := os.WriteFile(env.agentsPath, []byte(replaced), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	// 只有 AGENTS.md 段时，钩子配方的 --check 应该失败；装上钩子之后段仍是一份，检查通过。
+	// OpenCode 只看段，不装钩子。
+	for _, recipe := range agentsSectionRecipes() {
+		t.Run(recipe.name+" hooks missing", func(t *testing.T) {
+			stdout.Reset()
+			if err := recipe.check(env); !errors.Is(err, errSessionPrimeIncomplete) {
+				t.Fatalf("check = %v, want incomplete hooks\n%s", err, stdout.String())
+			}
+		})
+	}
+	stdout.Reset()
+	if err := checkOpenCode(env); err != nil {
+		t.Fatalf("opencode check: %v\n%s", err, stdout.String())
+	}
+	before := replaced
 	for _, recipe := range append(agentsSectionRecipes(), sectionRecipe{
 		name:    "Factory.ai (Droid)",
 		check:   checkFactory,
 		install: installFactory,
-	}, sectionRecipe{
-		name:  "OpenCode",
-		check: checkOpenCode,
 	}) {
-		t.Run(recipe.name, func(t *testing.T) {
+		t.Run(recipe.name+" after hooks", func(t *testing.T) {
+			stdout.Reset()
+			if err := recipe.install(env); err != nil {
+				t.Fatalf("install: %v", err)
+			}
+			data, err := os.ReadFile(env.agentsPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(data) != before {
+				t.Fatal("hook install rewrote a current AGENTS.md section")
+			}
+			if strings.Count(string(data), "<!-- BEGIN BEADS INTEGRATION") != 1 {
+				t.Fatalf("section count changed:\n%s", data)
+			}
 			stdout.Reset()
 			if err := recipe.check(env); err != nil {
 				t.Fatalf("check: %v\n%s", err, stdout.String())

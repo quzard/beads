@@ -65,6 +65,9 @@ type agentsIntegration struct {
 	readHint     string
 	docsURL      string
 	profile      agents.Profile // "full" or "minimal"; empty defaults to "full"
+	// skipNoConfigLine 跳过 “No additional configuration needed!”。
+	// 调用方还会接着写钩子，那句话会让人以为装完了。
+	skipNoConfigLine bool
 }
 
 func defaultAgentsEnv() agentsEnv {
@@ -216,7 +219,9 @@ func installAgents(env agentsEnv, integration agentsIntegration) error {
 	if integration.docsURL != "" {
 		_, _ = fmt.Fprintf(env.stdout, "Review guide: %s\n", integration.docsURL)
 	}
-	_, _ = fmt.Fprintln(env.stdout, "No additional configuration needed!")
+	if !integration.skipNoConfigLine {
+		_, _ = fmt.Fprintln(env.stdout, "No additional configuration needed!")
+	}
 	return nil
 }
 

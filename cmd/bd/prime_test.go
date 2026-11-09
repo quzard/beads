@@ -834,6 +834,41 @@ func TestOutputHookJSON_ShapeWithContent(t *testing.T) {
 	}
 }
 
+func TestOutputAntigravityHookJSON(t *testing.T) {
+	var buf bytes.Buffer
+	const payload = "bd ready\n"
+	if err := outputAntigravityHookJSON(&buf, payload); err != nil {
+		t.Fatalf("outputAntigravityHookJSON: %v", err)
+	}
+	var env struct {
+		InjectSteps []struct {
+			SystemMessage struct {
+				SystemMessage string `json:"systemMessage"`
+			} `json:"systemMessage"`
+		} `json:"injectSteps"`
+	}
+	if err := json.Unmarshal(bytes.TrimRight(buf.Bytes(), "\n"), &env); err != nil {
+		t.Fatalf("output is not valid JSON: %v\n%s", err, buf.String())
+	}
+	if len(env.InjectSteps) != 1 || env.InjectSteps[0].SystemMessage.SystemMessage != payload {
+		t.Fatalf("injectSteps = %+v", env.InjectSteps)
+	}
+
+	buf.Reset()
+	if err := outputAntigravityHookJSON(&buf, ""); err != nil {
+		t.Fatal(err)
+	}
+	var empty struct {
+		InjectSteps []json.RawMessage `json:"injectSteps"`
+	}
+	if err := json.Unmarshal(bytes.TrimRight(buf.Bytes(), "\n"), &empty); err != nil {
+		t.Fatalf("empty output is not valid JSON: %v\n%s", err, buf.String())
+	}
+	if len(empty.InjectSteps) != 0 {
+		t.Fatalf("empty injectSteps = %s", buf.String())
+	}
+}
+
 func TestOutputHookJSON_EmptyContent(t *testing.T) {
 	// Empty envelope is the contract for "nothing to inject" — the hook host
 	// still requires valid JSON on stdout, so we cannot just emit nothing.
