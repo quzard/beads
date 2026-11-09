@@ -29,13 +29,13 @@ func TestSetupListIncludesAgentsSectionRecipes(t *testing.T) {
 	out := captureStdout(t, listRecipes)
 	for _, needle := range []string{
 		"grok",
-		"Grok CLI AGENTS.md section",
+		"Grok CLI AGENTS.md section + SessionStart hook and rule",
 		"qoder",
-		"Qoder CLI AGENTS.md section",
+		"Qoder CLI AGENTS.md section + SessionStart hook",
 		"omp",
-		"OMP AGENTS.md section",
+		"OMP AGENTS.md section + session hook and always-on rule",
 		"antigravity",
-		"Antigravity AGENTS.md section",
+		"Antigravity AGENTS.md section + SessionStart hook and rule",
 	} {
 		if !strings.Contains(out, needle) {
 			t.Errorf("bd setup --list missing %q\n%s", needle, out)

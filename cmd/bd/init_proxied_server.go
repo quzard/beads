@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/steveyegge/beads/cmd/bd/setup"
 
 	"github.com/steveyegge/beads/internal/beads"
 	"github.com/steveyegge/beads/internal/config"
@@ -716,18 +717,24 @@ func runInitProxiedServerTail(cmd *cobra.Command, ctx context.Context, in initPr
 			if err := t.fsUseCase.InstallClaudeProject(ctx, in.stealth, in.quiet); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: failed to setup Claude hooks: %v\n", err)
 			}
+			// 与直接 init 一样补 SessionStart 钩子，不重写上面的 AGENTS.md 剖面。
+			installOut := setup.ProjectInstallOutput{}
+			if in.quiet {
+				installOut = setup.QuietProjectInstallOutput()
+			}
+			installSessionPrimeProjects(installOut)
 		}
 	}
 
 	if !in.stealth && isRepo && t.useLocalBeads {
 		commitResult, err := gitUC.CommitInitArtifacts(ctx, domain.CommitInitArtifactsParams{
 			BeadsDir: ".beads/",
-			OptionalPaths: []string{
+			OptionalPaths: append([]string{
 				config.SafeAgentsFile(),
 				filepath.Join(".claude", "settings.json"),
 				"CLAUDE.md",
 				".gitignore",
-			},
+			}, setup.SessionPrimeCommitPaths()...),
 			Message:   "bd init: initialize beads issue tracking",
 			NoVerify:  true,
 			SkipHooks: true,

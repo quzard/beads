@@ -23,13 +23,14 @@ import (
 )
 
 var (
-	primeFullMode     bool
-	primeMCPMode      bool
-	primeStealthMode  bool
-	primeExportMode   bool
-	primeMemoriesOnly bool
-	primeNoMemories   bool
-	primeHookJSONMode bool
+	primeFullMode        bool
+	primeMCPMode         bool
+	primeStealthMode     bool
+	primeExportMode      bool
+	primeMemoriesOnly    bool
+	primeNoMemories      bool
+	primeHookJSONMode    bool
+	primeHookAntigravity bool
 
 	primeMaxMemories       int
 	primeMaxMemoryChars    int
@@ -94,8 +95,9 @@ Automatically detects if MCP server is active and adapts output:
 - MCP mode: Brief workflow reminders (~50 tokens)
 - CLI mode: Full command reference (~1-2k tokens)
 
-Designed for Claude Code, Gemini CLI, and Codex SessionStart hooks to prevent
-agents from forgetting bd workflow after context compaction.
+Designed for SessionStart hooks (Claude Code, Gemini CLI, Codex, Qoder, and
+Factory) to prevent agents from forgetting bd workflow after context compaction.
+Antigravity's SessionStart expects injectSteps instead; use --hook-antigravity.
 
 Config options:
 - no-git-ops: When true, outputs stealth mode (no git commands in session close protocol).
@@ -107,7 +109,8 @@ Config options:
   Or per-session: BD_AGENT_PROFILE=team-maintainer (env var takes precedence).
   See docs/getting-started/ide-setup.md#policy-profiles for what each profile means.
 - prime.disabled: When true, bd prime prints nothing, as it does outside a
-  workspace (an empty envelope under --hook-json), whatever its other flags.
+  workspace (an empty envelope under --hook-json or --hook-antigravity),
+  whatever its other flags.
   For sessions whose host briefs the agent itself but that inherit a
   project's bd prime hook, such as an orchestrator's agent sessions.
   Set per-session: BD_PRIME_DISABLED=true. Or: bd config set prime.disabled true
@@ -153,8 +156,8 @@ Memory injection caps:
 		// Before any workspace or store access: a disabled prime costs the
 		// session nothing, the same as running outside a workspace.
 		if primeDisabled() {
-			if primeHookJSONMode {
-				_ = outputHookJSON(os.Stdout, "")
+			if primeHookWantsEnvelope() {
+				emitPrime("")
 			}
 			return nil
 		}
@@ -162,20 +165,12 @@ Memory injection caps:
 		primeMaxMemoriesSet = cmd.Flags().Changed("max-memories")
 		primeMaxMemoryCharsSet = cmd.Flags().Changed("max-memory-chars")
 
-		emit := func(content string) {
-			if primeHookJSONMode {
-				_ = outputHookJSON(os.Stdout, content)
-			} else {
-				fmt.Print(content)
-			}
-		}
-
 		beadsDir := beads.FindBeadsDir()
 		if beadsDir == "" {
 			// Silent exit with success enables cross-platform hook integration.
-			// Under --hook-json still emit a valid empty envelope.
-			if primeHookJSONMode {
-				_ = outputHookJSON(os.Stdout, "")
+			// A hook host still needs a valid JSON envelope when one was requested.
+			if primeHookWantsEnvelope() {
+				emitPrime("")
 			}
 			return nil
 		}
@@ -200,12 +195,12 @@ Memory injection caps:
 			var buf bytes.Buffer
 			if err := outputMemoriesOnlyContext(&buf); err != nil {
 				// Suppress all errors - silent exit with success.
-				if primeHookJSONMode {
-					_ = outputHookJSON(os.Stdout, "")
+				if primeHookWantsEnvelope() {
+					emitPrime("")
 				}
 				return nil
 			}
-			emit(buf.String())
+			emitPrime(buf.String())
 			return nil
 		}
 
@@ -221,7 +216,7 @@ Memory injection caps:
 						content += mem
 					}
 				}
-				emit(content)
+				emitPrime(content)
 				return nil
 			}
 		}
@@ -229,8 +224,8 @@ Memory injection caps:
 		var buf bytes.Buffer
 		if err := outputPrimeContextWithOptions(&buf, mcpMode, stealthMode, primeMemoriesOnly); err != nil {
 			// Errors are suppressed by design for hook integration.
-			if primeHookJSONMode {
-				_ = outputHookJSON(os.Stdout, "")
+			if primeHookWantsEnvelope() {
+				emitPrime("")
 			}
 			return nil
 		}
@@ -238,7 +233,7 @@ Memory injection caps:
 		// files are independent regulars carrying the bd marker; otherwise this
 		// adds nothing (zero output, negligible cost).
 		buf.WriteString(primeDivergenceReminder(primeWorkspaceDir()))
-		emit(buf.String())
+		emitPrime(buf.String())
 		return nil
 	},
 }
@@ -250,7 +245,8 @@ func init() {
 	primeCmd.Flags().BoolVar(&primeExportMode, "export", false, "Output default content (ignores PRIME.md override)")
 	primeCmd.Flags().BoolVar(&primeMemoriesOnly, "memories-only", false, "Output only persistent memories for compact hook contexts")
 	primeCmd.Flags().BoolVar(&primeNoMemories, "no-memories", false, "Omit the persistent memories section (ignored when --memories-only is set, which wins)")
-	primeCmd.Flags().BoolVar(&primeHookJSONMode, "hook-json", false, "Wrap output in the SessionStart hook JSON envelope (Claude Code, Gemini CLI, Codex)")
+	primeCmd.Flags().BoolVar(&primeHookJSONMode, "hook-json", false, "Wrap output in the SessionStart hook JSON envelope (Claude Code, Gemini CLI, Codex, Qoder, Factory)")
+	primeCmd.Flags().BoolVar(&primeHookAntigravity, "hook-antigravity", false, "Wrap output in the Antigravity SessionStart injectSteps envelope")
 	primeCmd.Flags().IntVar(&primeMaxMemories, "max-memories", 0, "Cap injected persistent memories to N entries (0 = unlimited; falls back to the prime.max-memories config key)")
 	primeCmd.Flags().IntVar(&primeMaxMemoryChars, "max-memory-chars", 0, "Cap the total bytes of injected memory entries, at whole-memory boundaries; section header and banner are not counted (0 = unlimited; falls back to the prime.max-memory-chars config key)")
 	rootCmd.AddCommand(primeCmd)
@@ -359,6 +355,44 @@ func outputHookJSON(w io.Writer, content string) error {
 			HookEventName:     "SessionStart",
 			AdditionalContext: content,
 		},
+	}
+	return json.NewEncoder(w).Encode(envelope)
+}
+
+// primeHookWantsEnvelope 表示调用方要一份 JSON 信封，而不是 markdown。
+// 两个旗标同时打开时走 Antigravity，因为那种宿主不认 additionalContext。
+func primeHookWantsEnvelope() bool {
+	return primeHookJSONMode || primeHookAntigravity
+}
+
+func emitPrime(content string) {
+	switch {
+	case primeHookAntigravity:
+		_ = outputAntigravityHookJSON(os.Stdout, content)
+	case primeHookJSONMode:
+		_ = outputHookJSON(os.Stdout, content)
+	default:
+		fmt.Print(content)
+	}
+}
+
+// outputAntigravityHookJSON 把内容包进 Antigravity SessionStart 的 injectSteps。
+// 空内容写出空数组，宿主仍然拿到合法 JSON。schema 见
+// https://antigravity.google/docs/hooks
+func outputAntigravityHookJSON(w io.Writer, content string) error {
+	type systemMessage struct {
+		Text string `json:"systemMessage"`
+	}
+	type step struct {
+		SystemMessage *systemMessage `json:"systemMessage,omitempty"`
+	}
+	envelope := struct {
+		InjectSteps []step `json:"injectSteps"`
+	}{InjectSteps: []step{}}
+	if content != "" {
+		envelope.InjectSteps = []step{{
+			SystemMessage: &systemMessage{Text: content},
+		}}
 	}
 	return json.NewEncoder(w).Encode(envelope)
 }

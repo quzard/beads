@@ -299,6 +299,9 @@ func TestCheckFactoryScenarios(t *testing.T) {
 		if err := os.WriteFile(env.agentsPath, []byte(beadsSection), 0644); err != nil {
 			t.Fatalf("failed to seed file: %v", err)
 		}
+		if _, err := installPrimeHooks(filepath.Dir(env.agentsPath), factoryPrimeSpec()); err != nil {
+			t.Fatalf("seed hooks: %v", err)
+		}
 		if err := checkFactory(env); err != nil {
 			t.Fatalf("checkFactory returned error: %v", err)
 		}
@@ -487,5 +490,127 @@ func TestRoundTripAddRemoveLeavesNoBeadsContent(t *testing.T) {
 	// User content should be preserved
 	if !strings.Contains(cleaned, "# My Project") {
 		t.Error("user content should be preserved after removal")
+	}
+}
+
+func TestFactoryMergesSettingsHooksInsteadOfCreatingHooksJSON(t *testing.T) {
+	stubDetectRenderOpts(t)
+	env, stdout, _ := newFactoryTestEnv(t)
+	root := filepath.Dir(env.agentsPath)
+	settings := filepath.Join(root, factorySettingsFile)
+	seedUserHooks(t, settings, true)
+
+	if err := installFactory(env); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, factoryHooksFile)); !os.IsNotExist(err) {
+		t.Fatalf("hooks.json should not be created while settings.json declares hooks: %v", err)
+	}
+	assertPrimeCommand(t, settings, true, SessionPrimeCommand, true)
+	if !strings.Contains(stdout.String(), factorySettingsFile) {
+		t.Fatalf("stdout:\n%s", stdout.String())
+	}
+
+	before, err := os.ReadFile(settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := installFactory(env); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(before) {
+		t.Fatal("second install rewrote settings.json")
+	}
+
+	if err := removeFactory(env); err != nil {
+		t.Fatal(err)
+	}
+	assertPrimeCommand(t, settings, true, SessionPrimeCommand, false)
+}
+
+func TestFactoryMigratesLegacyHooks(t *testing.T) {
+	stubDetectRenderOpts(t)
+	env, stdout, _ := newFactoryTestEnv(t)
+	root := filepath.Dir(env.agentsPath)
+	legacy := filepath.Join(root, factoryLegacyHooksFile)
+	if err := os.MkdirAll(filepath.Dir(legacy), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	const original = "{\n  \"PreToolUse\": [\n    {\n      \"hooks\": [\n        {\n          \"command\": \"echo keep\",\n          \"type\": \"command\"\n        }\n      ]\n    }\n  ]\n}\n"
+	if err := os.WriteFile(legacy, []byte(original), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := installFactory(env); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(legacy); !os.IsNotExist(err) {
+		t.Fatalf("legacy hooks file still present: %v", err)
+	}
+	migrated, err := os.ReadFile(filepath.Join(root, factoryLegacyMigratedFile))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(migrated) != original {
+		t.Fatalf("archived legacy hooks = %s", migrated)
+	}
+	if strings.Contains(string(migrated), SessionPrimeCommand) {
+		t.Fatal("archived file should not gain the beads command")
+	}
+	assertPrimeCommand(t, filepath.Join(root, factoryHooksFile), false, SessionPrimeCommand, true)
+	if !strings.Contains(stdout.String(), "Migrated") {
+		t.Fatalf("stdout:\n%s", stdout.String())
+	}
+}
+
+func TestFactoryRefusesToShadowUnreadableSettings(t *testing.T) {
+	stubDetectRenderOpts(t)
+	env, _, stderr := newFactoryTestEnv(t)
+	root := filepath.Dir(env.agentsPath)
+	path := filepath.Join(root, factorySettingsFile)
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, []byte("{"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := installFactory(env); err == nil {
+		t.Fatal("expected error")
+	}
+	if _, err := os.Stat(filepath.Join(root, factoryHooksFile)); !os.IsNotExist(err) {
+		t.Fatalf("hooks.json created over unreadable settings: %v", err)
+	}
+	if !strings.Contains(stderr.String(), "parse") {
+		t.Fatalf("stderr:\n%s", stderr.String())
+	}
+}
+
+func TestFactoryKeepsExistingHooksJSONAuthoritative(t *testing.T) {
+	stubDetectRenderOpts(t)
+	env, _, _ := newFactoryTestEnv(t)
+	root := filepath.Dir(env.agentsPath)
+	settings := filepath.Join(root, factorySettingsFile)
+	seedUserHooks(t, filepath.Join(root, factoryHooksFile), false)
+	seedUserHooks(t, settings, true)
+	before, err := os.ReadFile(settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := installFactory(env); err != nil {
+		t.Fatal(err)
+	}
+	after, err := os.ReadFile(settings)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(before) {
+		t.Fatal("settings.json changed even though hooks.json already exists")
+	}
+	assertPrimeCommand(t, filepath.Join(root, factoryHooksFile), false, SessionPrimeCommand, true)
+	if strings.Contains(string(after), SessionPrimeCommand) {
+		t.Fatal("settings.json gained the beads command")
 	}
 }

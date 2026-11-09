@@ -123,9 +123,10 @@ by default; pass --agents-profile=minimal for this shorter pointer. This approac
   • bd prime provides dynamic, always-current workflow details
   • Hooks auto-inject bd prime at session start
 
-Agents that only read AGENTS.md (Grok, Qoder CLI, OMP, Antigravity, Factory
-Droid, OpenCode) get that full section from 'bd init'. Use this snippet when
-you want the short pointer instead.`,
+Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode read that
+AGENTS.md section from 'bd init'. Init also installs their SessionStart-style
+hooks (and a thin rule where the hook cannot inject text). Use this snippet
+when you want the short pointer instead.`,
 	SilenceUsage:  true,
 	SilenceErrors: true,
 	RunE: func(cmd *cobra.Command, args []string) error {

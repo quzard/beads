@@ -435,6 +435,15 @@ func TestEmbeddedInitABasic(t *testing.T) {
 		// Cursor integration is auto-installed by bd init too (rules + hooks).
 		requireFile(t, filepath.Join(dir, ".cursor", "rules", "beads.mdc"))
 		requireFile(t, filepath.Join(dir, ".cursor", "hooks.json"))
+		// Grok / Qoder / OMP / Antigravity / Factory 的 SessionStart 钩子也由 init 装上。
+		requireFile(t, filepath.Join(dir, ".grok", "hooks", "beads.json"))
+		requireFile(t, filepath.Join(dir, ".grok", "rules", "beads.md"))
+		requireFile(t, filepath.Join(dir, ".qoder", "settings.json"))
+		requireFile(t, filepath.Join(dir, ".omp", "hooks", "pre", "beads.js"))
+		requireFile(t, filepath.Join(dir, ".omp", "rules", "beads.md"))
+		requireFile(t, filepath.Join(dir, ".agents", "hooks.json"))
+		requireFile(t, filepath.Join(dir, ".agents", "rules", "beads.md"))
+		requireFile(t, filepath.Join(dir, ".factory", "hooks.json"))
 
 		content, err := os.ReadFile(filepath.Join(beadsDir, ".gitignore"))
 		if err != nil {
@@ -1084,6 +1093,10 @@ func TestEmbeddedInitBStealthAndForceReinit(t *testing.T) {
 		requireNoFile(t, filepath.Join(dir, ".claude"))
 		requireNoFile(t, filepath.Join(dir, ".agents"))
 		requireNoFile(t, filepath.Join(dir, ".codex"))
+		requireNoFile(t, filepath.Join(dir, ".grok"))
+		requireNoFile(t, filepath.Join(dir, ".qoder"))
+		requireNoFile(t, filepath.Join(dir, ".omp"))
+		requireNoFile(t, filepath.Join(dir, ".factory"))
 
 		// Stealth must stay invisible: it should create .beads/ but route everything else into
 		// .git/info/exclude so the database lives there without git seeing it.

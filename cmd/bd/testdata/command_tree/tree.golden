@@ -3696,7 +3696,8 @@ bd init
     |   • Claude Code hooks and CLAUDE.md
     |   • Codex skill, hooks, and AGENTS.md guidance
     |   • Cursor rules and hooks
-    | --agents-profile=minimal writes a short AGENTS.md pointer to bd prime instead of the full section. Claude, Codex, and Cursor setup still runs.
+    |   • Grok, Qoder, OMP, Antigravity, and Factory SessionStart-style hooks (and a thin rule where the hook cannot inject context)
+    | --agents-profile=minimal writes a short AGENTS.md pointer to bd prime instead of the full section. Claude, Codex, Cursor, and those SessionStart hooks still run. The minimal section is not upgraded.
     |
     | By default, beads uses an embedded Dolt engine (no external server needed).
     | Pass --server to use an external dolt sql-server instead. In server mode,
@@ -5563,9 +5564,10 @@ bd onboard
     |   • bd prime provides dynamic, always-current workflow details
     |   • Hooks auto-inject bd prime at session start
     |
-    | Agents that only read AGENTS.md (Grok, Qoder CLI, OMP, Antigravity, Factory
-    | Droid, OpenCode) get that full section from 'bd init'. Use this snippet when
-    | you want the short pointer instead.
+    | Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode read that
+    | AGENTS.md section from 'bd init'. Init also installs their SessionStart-style
+    | hooks (and a thin rule where the hook cannot inject text). Use this snippet
+    | when you want the short pointer instead.
 
 bd orphans
   use: "orphans"
@@ -5651,8 +5653,9 @@ bd prime
     | - MCP mode: Brief workflow reminders (~50 tokens)
     | - CLI mode: Full command reference (~1-2k tokens)
     |
-    | Designed for Claude Code, Gemini CLI, and Codex SessionStart hooks to prevent
-    | agents from forgetting bd workflow after context compaction.
+    | Designed for SessionStart hooks (Claude Code, Gemini CLI, Codex, Qoder, and
+    | Factory) to prevent agents from forgetting bd workflow after context compaction.
+    | Antigravity's SessionStart expects injectSteps instead; use --hook-antigravity.
     |
     | Config options:
     | - no-git-ops: When true, outputs stealth mode (no git commands in session close protocol).
@@ -5664,7 +5667,8 @@ bd prime
     |   Or per-session: BD_AGENT_PROFILE=team-maintainer (env var takes precedence).
     |   See docs/getting-started/ide-setup.md#policy-profiles for what each profile means.
     | - prime.disabled: When true, bd prime prints nothing, as it does outside a
-    |   workspace (an empty envelope under --hook-json), whatever its other flags.
+    |   workspace (an empty envelope under --hook-json or --hook-antigravity),
+    |   whatever its other flags.
     |   For sessions whose host briefs the agent itself but that inherit a
     |   project's bd prime hook, such as an orchestrator's agent sessions.
     |   Set per-session: BD_PRIME_DISABLED=true. Or: bd config set prime.disabled true
@@ -5699,7 +5703,8 @@ bd prime
     | 	the section header and elision banner are excluded from the budget.
   flag --export type=bool default="false" usage="Output default content (ignores PRIME.md override)"
   flag --full type=bool default="false" usage="Force full CLI output (ignore MCP detection)"
-  flag --hook-json type=bool default="false" usage="Wrap output in the SessionStart hook JSON envelope (Claude Code, Gemini CLI, Codex)"
+  flag --hook-antigravity type=bool default="false" usage="Wrap output in the Antigravity SessionStart injectSteps envelope"
+  flag --hook-json type=bool default="false" usage="Wrap output in the SessionStart hook JSON envelope (Claude Code, Gemini CLI, Codex, Qoder, Factory)"
   flag --max-memories type=int default="0" usage="Cap injected persistent memories to N entries (0 = unlimited; falls back to the prime.max-memories config key)"
   flag --max-memory-chars type=int default="0" usage="Cap the total bytes of injected memory entries, at whole-memory boundaries; section header and banner are not counted (0 = unlimited; falls back to the prime.max-memory-chars config key)"
   flag --mcp type=bool default="false" usage="Force MCP mode (minimal output)"
@@ -6665,6 +6670,8 @@ bd setup
     |
     | Recipes define where beads workflow instructions are written. Built-in recipes
     | include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, kilocode, grok, qoder, omp, and antigravity.
+    |
+    | grok, qoder, omp, antigravity, and factory keep an AGENTS.md section and also install a native SessionStart (or session-start) hook. Where that hook cannot inject text, the recipe adds a thin rules file.
     |
     | Examples:
     |   bd setup cursor          # Install Cursor IDE integration (rules + agent hooks)

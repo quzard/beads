@@ -22,6 +22,7 @@ go_library(
         "opencode.go",
         "project_output.go",
         "qoder.go",
+        "session_prime.go",
         "setup_test_helpers.go",
         "utils.go",
     ],
@@ -54,6 +55,7 @@ go_test(
         "opencode_test.go",
         "plugin_layout_test.go",
         "project_output_test.go",
+        "session_prime_test.go",
         "utils_test.go",
     ],
     data = glob(["testdata/**"]) + [
