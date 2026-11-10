@@ -444,7 +444,22 @@ else
 	@ln -sfn bd "$(INSTALL_DIR)/.beads.install.tmp.$$$$" && mv -f "$(INSTALL_DIR)/.beads.install.tmp.$$$$" "$(INSTALL_DIR)/beads"
 	@echo "Created 'beads' alias -> bd"
 endif
-	@git config core.hooksPath .githooks 2>/dev/null && echo "Configured git hooks (.githooks/)" || true
+	@# 全局设了 core.hooksPath（例如凭据扫描 hook）时不覆盖它：仓库级的值会让全局 hook 在本仓失效。
+	@# 改为把 .githooks/* 链接进仓库的 hooks 目录；全局 hook 接着调用仓库 hook 时，beads 的 hook 照常运行。
+	@# 不改用户自己放的同名 hook（非链接的文件）；以前设的仓库级 .githooks 会撤掉。
+	@if git config --global --get core.hooksPath >/dev/null 2>&1; then \
+		if [ "$$(git config --local --get core.hooksPath 2>/dev/null)" = ".githooks" ]; then git config --local --unset core.hooksPath; fi; \
+		hooks_dir="$$(git rev-parse --path-format=absolute --git-common-dir)/hooks"; \
+		mkdir -p "$$hooks_dir"; \
+		for hook in .githooks/*; do \
+			target="$$hooks_dir/$${hook##*/}"; \
+			if [ -e "$$target" ] && [ ! -L "$$target" ]; then echo "Kept existing $$target"; continue; fi; \
+			ln -sfn "$(CURDIR)/$$hook" "$$target"; \
+		done; \
+		echo "Kept global core.hooksPath; linked .githooks/ into $$hooks_dir"; \
+	else \
+		git config core.hooksPath .githooks 2>/dev/null && echo "Configured git hooks (.githooks/)" || true; \
+	fi
 
 install: check-up-to-date
 
