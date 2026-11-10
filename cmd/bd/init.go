@@ -2431,6 +2431,8 @@ Non-interactive mode (--non-interactive or BD_NON_INTERACTIVE=1):
 				}
 			} else {
 				renderOpts := agents.RenderOpts{HasRemote: shouldConfigureInitDoltRemote(syncURL, syncFromRemote, syncURLFromConfig, syncURLFromGitOrigin, isDoltLocalOnly()), NoPush: config.GetBool("no-push")}
+				// 有 PRIME.md 覆盖时托管段只指向 bd prime，查找顺序和 bd prime 相同。
+				_, renderOpts.CustomPrime = config.ReadPrimeOverride("", beadsDir)
 				addAgentsInstructions(resolvedAgentsFile, !quiet, agentsTemplate, agentsProfile, renderOpts)
 				if !quiet && agentsProfile == agents.ProfileFull {
 					fmt.Printf("  %s %s beads section covers Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode\n", ui.RenderPass("✓"), resolvedAgentsFile)

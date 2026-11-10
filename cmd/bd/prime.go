@@ -65,26 +65,6 @@ func primeStoreTimeout() time.Duration {
 	return primeStoreTimeoutDefault
 }
 
-// resolveGlobalPrimePath returns the path to ~/.config/beads/PRIME.md if it
-// exists. configDirOverride is used for testing; pass "" for production.
-func resolveGlobalPrimePath(configDirOverride string) string {
-	var configDir string
-	if configDirOverride != "" {
-		configDir = configDirOverride
-	} else {
-		var err error
-		configDir, err = os.UserConfigDir()
-		if err != nil {
-			return ""
-		}
-	}
-	p := filepath.Join(configDir, "beads", "PRIME.md")
-	if _, err := os.Stat(p); err == nil {
-		return p
-	}
-	return ""
-}
-
 var primeCmd = &cobra.Command{
 	Use:     "prime",
 	GroupID: "setup",
@@ -127,6 +107,10 @@ Config options:
 	      ~/.config/beads/ on Linux ($XDG_CONFIG_HOME/beads/ if set),
 	      ~/Library/Application Support/beads/ on macOS,
 	      %AppData%\beads\ on Windows.
+	- With an override, bd init and bd setup write only a pointer to bd prime
+	  into the agent files they generate (the AGENTS.md and CLAUDE.md sections,
+	  the Codex guidance, the Cursor rules, and the beads skill). Those files
+	  then do not repeat default workflow rules that the override replaces.
 	- Persistent memories (from bd remember) are still appended so memory
 	  injection keeps working under a custom template.
 	- Use --export to dump the default content for customization.
@@ -259,27 +243,11 @@ func init() {
 // customization), then the global ~/.config/beads/PRIME.md. It returns
 // ("", false) when no override exists, so callers fall through to the
 // generated default.
+//
+// 查找逻辑在 config.ReadPrimeOverride：bd init 和 bd setup 按同一顺序判断有没有覆盖，
+// 有覆盖时生成的代理说明只指向 bd prime。
 func readCustomPrimeContent(workspaceDir, beadsDir string) (string, bool) {
-	// Try local first (user's clone-specific customization; 4021f4944 / GH#876).
-	localPrimePath := filepath.Join(workspaceDir, ".beads", "PRIME.md")
-	// #nosec G304 -- path is relative to the workspace root (-C target or cwd)
-	if content, err := os.ReadFile(localPrimePath); err == nil {
-		return string(content), true
-	}
-	// Fall back to redirected location (shared customization).
-	redirectedPrimePath := filepath.Join(beadsDir, "PRIME.md")
-	// #nosec G304 -- path is constructed from beadsDir which we control
-	if content, err := os.ReadFile(redirectedPrimePath); err == nil {
-		return string(content), true
-	}
-	// Fall back to global config (~/.config/beads/PRIME.md).
-	if globalPath := resolveGlobalPrimePath(""); globalPath != "" {
-		// #nosec G304 -- path constructed from UserConfigDir which we control
-		if content, err := os.ReadFile(globalPath); err == nil {
-			return string(content), true
-		}
-	}
-	return "", false
+	return config.ReadPrimeOverride(workspaceDir, beadsDir)
 }
 
 // primeWorkspaceDir returns the directory prime resolves workspace-relative

@@ -701,6 +701,8 @@ func runInitProxiedServerTail(cmd *cobra.Command, ctx context.Context, in initPr
 				fmt.Printf("  Skipping %s generation in bare repository\n", resolvedAgentsFile)
 			}
 		} else {
+			// 有 PRIME.md 覆盖时托管段只指向 bd prime，查找顺序和 bd prime 相同。
+			_, customPrime := config.ReadPrimeOverride(t.workDir, t.beadsDir)
 			_ = t.fsUseCase.AddAgentsInstructions(ctx, domain.AgentsFileParams{
 				File:         resolvedAgentsFile,
 				Verbose:      !in.quiet,
@@ -708,6 +710,7 @@ func runInitProxiedServerTail(cmd *cobra.Command, ctx context.Context, in initPr
 				Profile:      string(agentsProfile),
 				HasRemote:    t.remoteURL != "",
 				NoPush:       config.GetBool("no-push"),
+				CustomPrime:  customPrime,
 			})
 			if !in.quiet && agentsProfile == agents.ProfileFull {
 				fmt.Printf("  %s %s beads section covers Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode\n", ui.RenderPass("✓"), resolvedAgentsFile)

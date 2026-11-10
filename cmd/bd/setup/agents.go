@@ -84,8 +84,9 @@ func defaultAgentsEnv() agentsEnv {
 // Exposed as a variable so tests can override.
 var detectRenderOptsImpl = func() agents.RenderOpts {
 	return agents.RenderOpts{
-		HasRemote: config.GetString("sync.remote") != "" || config.GetString("sync.git-remote") != "",
-		NoPush:    config.GetBool("no-push"),
+		HasRemote:   config.GetString("sync.remote") != "" || config.GetString("sync.git-remote") != "",
+		NoPush:      config.GetBool("no-push"),
+		CustomPrime: primeOverrideActive(false),
 	}
 }
 

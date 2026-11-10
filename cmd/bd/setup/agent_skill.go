@@ -19,6 +19,9 @@ type agentSkillEnv struct {
 	stdout     io.Writer
 	stderr     io.Writer
 	projectDir string
+	// userLevel 表示技能装在用户目录（~/.agents/skills/beads），对所有仓库生效；
+	// 是否有 PRIME.md 覆盖只按用户配置目录判断（见 agentSkillContent）。
+	userLevel  bool
 	ensureDir  func(string, os.FileMode) error
 	readFile   func(string) ([]byte, error)
 	writeFile  func(string, []byte) error
@@ -45,7 +48,7 @@ func installAgentSkill(env agentSkillEnv) error {
 		_, _ = fmt.Fprintf(env.stderr, "Error: %v\n", err)
 		return err
 	}
-	if err := env.writeFile(skillPath, []byte(templates.BeadsAgentSkill())); err != nil {
+	if err := env.writeFile(skillPath, []byte(agentSkillContent(env.userLevel))); err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "Error: write skill: %v\n", err)
 		return err
 	}
@@ -77,7 +80,7 @@ func checkAgentSkill(env agentSkillEnv, setupCommand string) error {
 		_, _ = fmt.Fprintf(env.stderr, "Error: read skill: %v\n", err)
 		return err
 	}
-	if string(data) != templates.BeadsAgentSkill() {
+	if string(data) != agentSkillContent(env.userLevel) {
 		_, _ = fmt.Fprintf(env.stdout, "⚠ Beads agent skill installed but stale: %s\n", skillPath)
 		_, _ = fmt.Fprintf(env.stdout, "  Run: %s\n", setupCommand)
 		return errAgentSkillStale

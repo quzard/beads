@@ -778,9 +778,9 @@ func TestPrimeGlobalFallback(t *testing.T) {
 	}
 
 	// Call the helper that resolves the global prime path
-	got := resolveGlobalPrimePath(tmpDir)
+	got := config.GlobalPrimePath(tmpDir)
 	if got == "" {
-		t.Fatal("resolveGlobalPrimePath returned empty, want path to global PRIME.md")
+		t.Fatal("config.GlobalPrimePath returned empty, want path to global PRIME.md")
 	}
 
 	data, err := os.ReadFile(got)
@@ -795,9 +795,9 @@ func TestPrimeGlobalFallback(t *testing.T) {
 func TestPrimeGlobalFallback_Missing(t *testing.T) {
 	// When no global PRIME.md exists, should return empty string
 	tmpDir := t.TempDir()
-	got := resolveGlobalPrimePath(tmpDir)
+	got := config.GlobalPrimePath(tmpDir)
 	if got != "" {
-		t.Errorf("resolveGlobalPrimePath = %q, want empty for missing file", got)
+		t.Errorf("config.GlobalPrimePath = %q, want empty for missing file", got)
 	}
 }
 

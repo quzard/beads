@@ -30,7 +30,7 @@ func newFileSystemAdapters() domain.BeadsDirFSAdapters {
 		},
 		InstallJJHooks: installJJHooks,
 		AddAgentsInstructions: func(p domain.AgentsFileParams) {
-			addAgentsInstructions(p.File, p.Verbose, p.TemplatePath, agents.Profile(p.Profile), agents.RenderOpts{HasRemote: p.HasRemote, NoPush: p.NoPush})
+			addAgentsInstructions(p.File, p.Verbose, p.TemplatePath, agents.Profile(p.Profile), agents.RenderOpts{HasRemote: p.HasRemote, NoPush: p.NoPush, CustomPrime: p.CustomPrime})
 		},
 		InstallClaudeProject: func(stealth, quiet bool) error {
 			out := setup.ProjectInstallOutput{}

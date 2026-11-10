@@ -268,7 +268,7 @@ func claudeInstructionsEnv(env claudeEnv, global bool) (agentsEnv, agentsIntegra
 		stdout:      env.stdout,
 		stderr:      env.stderr,
 		sectionOnly: true,
-		renderOpts:  agents.UserLevelRenderOpts,
+		renderOpts:  userLevelRenderOpts,
 	}, claudeGlobalAgentsIntegration, false
 }
 

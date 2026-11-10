@@ -109,7 +109,7 @@ func geminiInstructionsEnv(env geminiEnv, project bool) (agentsEnv, agentsIntegr
 		stdout:      env.stdout,
 		stderr:      env.stderr,
 		sectionOnly: true,
-		renderOpts:  agents.UserLevelRenderOpts,
+		renderOpts:  userLevelRenderOpts,
 		// Below Gemini CLI's memories the section's own "## " heading would
 		// end them, and memories added there would land inside the section,
 		// where an update or --remove deletes them.

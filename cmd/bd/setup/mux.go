@@ -114,7 +114,7 @@ func muxGlobalAgentsPath() (string, error) {
 func muxGlobalAgentsEnv(env agentsEnv, globalPath string) agentsEnv {
 	env.agentsPath = globalPath
 	env.sectionOnly = true
-	env.renderOpts = agents.UserLevelRenderOpts
+	env.renderOpts = userLevelRenderOpts
 	return env
 }
 

@@ -1,6 +1,6 @@
 ---
 name: beads
-description: Use before any code, config, or doc edit in a repository that contains .beads, including a small change. Run bd prime first. Create and claim an issue when none matches, and close it with the commit id when the change is finished. Also use for ready work, blockers, and handoff.
+description: Use before any code, config, or doc edit in a repository that contains .beads, including a small change. Run bd prime first and follow its output. Also use for ready work, blockers, and handoff.
 ---
 
 # Beads

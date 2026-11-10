@@ -118,7 +118,7 @@ func TestRemoveCursorKeepsSkillWhenCodexPresent(t *testing.T) {
 
 	// Simulate a Codex install that shares the .agents/skills/beads skill by
 	// writing its managed AGENTS.md section.
-	if err := os.WriteFile(codexInstructionsFile, []byte(codexManagedSection()+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(codexInstructionsFile, []byte(codexManagedSection(false)+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

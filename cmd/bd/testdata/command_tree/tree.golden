@@ -5685,6 +5685,10 @@ bd prime
     | 	      ~/.config/beads/ on Linux ($XDG_CONFIG_HOME/beads/ if set),
     | 	      ~/Library/Application Support/beads/ on macOS,
     | 	      %AppData%\beads\ on Windows.
+    | 	- With an override, bd init and bd setup write only a pointer to bd prime
+    | 	  into the agent files they generate (the AGENTS.md and CLAUDE.md sections,
+    | 	  the Codex guidance, the Cursor rules, and the beads skill). Those files
+    | 	  then do not repeat default workflow rules that the override replaces.
     | 	- Persistent memories (from bd remember) are still appended so memory
     | 	  injection keeps working under a custom template.
     | 	- Use --export to dump the default content for customization.

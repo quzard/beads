@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/steveyegge/beads/internal/recipes"
+	"github.com/steveyegge/beads/internal/templates/agents"
 )
 
 const (
@@ -102,6 +103,16 @@ alwaysApply: true
 <!-- END BEADS INTEGRATION -->
 `
 
+// cursorRulesContent 返回要写入的 Cursor 规则。有 PRIME.md 覆盖时，标记之间只写指向
+// bd prime 的一句，frontmatter 和标记不变。规则只装在项目里，按项目判断有没有覆盖。
+func cursorRulesContent() string {
+	if !primeOverrideActive(false) {
+		return cursorRulesTemplate
+	}
+	return strings.Replace(cursorRulesTemplate, recipes.Template,
+		"# Beads Issue Tracking\n\n"+agents.PrimePointerText()+"\n", 1)
+}
+
 // InstallCursor installs Cursor integration. Project scope (default) writes an
 // always-applied rules file plus agent lifecycle hooks; global scope writes the
 // hooks to ~/.cursor/hooks.json (rules are project-only — see
@@ -195,6 +206,7 @@ func cursorAgentSkillEnv(global bool) (agentSkillEnv, error) {
 		stdout:     os.Stdout,
 		stderr:     os.Stderr,
 		projectDir: base,
+		userLevel:  global,
 		ensureDir:  EnsureDir,
 		readFile:   os.ReadFile,
 		writeFile: func(path string, data []byte) error {
@@ -208,7 +220,7 @@ func installCursorRules() error {
 	if err := EnsureDir(filepath.Dir(cursorRulesPath), 0o755); err != nil {
 		return err
 	}
-	if err := atomicWriteFile(cursorRulesPath, []byte(cursorRulesTemplate)); err != nil {
+	if err := atomicWriteFile(cursorRulesPath, []byte(cursorRulesContent())); err != nil {
 		return fmt.Errorf("write rules: %w", err)
 	}
 	return nil

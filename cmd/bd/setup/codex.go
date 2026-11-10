@@ -214,6 +214,7 @@ func codexAgentSkillEnv(env codexEnv, global bool) agentSkillEnv {
 		stdout:     env.stdout,
 		stderr:     env.stderr,
 		projectDir: codexRootDir(env, global),
+		userLevel:  global,
 		ensureDir:  env.ensureDir,
 		readFile:   env.readFile,
 		writeFile:  env.writeFile,
@@ -221,8 +222,15 @@ func codexAgentSkillEnv(env codexEnv, global bool) agentSkillEnv {
 	}
 }
 
-func codexManagedSection() string {
-	return codexBeginMarker + "\n" + agents.CodexSectionBody() + "\n" + codexEndMarker
+// codexManagedSection 返回 Codex 段。global 为 true 时段落写在 ~/.codex/AGENTS.md，
+// 对所有仓库生效，是否有 PRIME.md 覆盖只按用户配置目录判断。
+func codexManagedSection(global bool) string {
+	body := agents.CodexSectionBody()
+	if primeOverrideActive(global) {
+		// 有覆盖时，Codex 段和托管段一样只写指针，规则全部来自 bd prime。
+		body = agents.PrimePointerBody()
+	}
+	return codexBeginMarker + "\n" + body + "\n" + codexEndMarker
 }
 
 func installCodexInstructions(env codexEnv, global bool) error {
@@ -249,7 +257,7 @@ func installCodexInstructions(env codexEnv, global bool) error {
 		return err
 	}
 
-	next := upsertCodexManagedSection(current)
+	next := upsertCodexManagedSection(current, global)
 	if err := env.writeFile(path, []byte(next)); err != nil {
 		_, _ = fmt.Fprintf(env.stderr, "Error: write %s: %v\n", path, err)
 		return err
@@ -280,7 +288,7 @@ func checkCodexInstructions(env codexEnv, global bool) error {
 		_, _ = fmt.Fprintf(env.stdout, "  Run: %s\n", codexSetupCommand(global))
 		return errCodexInstructionsNoMarker
 	}
-	if section != codexManagedSection() {
+	if section != codexManagedSection(global) {
 		_, _ = fmt.Fprintf(env.stdout, "⚠ Codex instructions installed but stale: %s\n", path)
 		_, _ = fmt.Fprintf(env.stdout, "  Run: %s\n", codexSetupCommand(global))
 		return errCodexInstructionsStale
@@ -317,8 +325,8 @@ func removeCodexInstructions(env codexEnv, global bool) error {
 	return nil
 }
 
-func upsertCodexManagedSection(content string) string {
-	section := codexManagedSection()
+func upsertCodexManagedSection(content string, global bool) string {
+	section := codexManagedSection(global)
 	if _, ok := extractCodexManagedSection(content); ok {
 		start := strings.Index(content, codexBeginMarker)
 		end := strings.Index(content, codexEndMarker)

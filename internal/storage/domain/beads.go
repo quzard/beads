@@ -104,6 +104,8 @@ type AgentsFileParams struct {
 	Profile      string
 	HasRemote    bool
 	NoPush       bool
+	// CustomPrime 表示有 PRIME.md 覆盖，托管段只写指向 bd prime 的一句（agents.RenderOpts.CustomPrime）。
+	CustomPrime bool
 }
 
 type BeadsDirFSAdapters struct {

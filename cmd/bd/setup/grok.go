@@ -21,13 +21,12 @@ const grokHooksURL = "https://docs.x.ai/build/features/hooks"
 
 // grokRulesBody 是薄的 always-loaded 规则。Grok 不解析 frontmatter，整篇 markdown 都会进上下文。
 // 标记给 --remove 用，避免删掉用户自己的同名文件。
+// 认领、关闭事项的做法只来自 bd prime：这里再写一遍会落后于 PRIME.md 覆盖的工作流。
 const grokRulesBody = `<!-- beads-setup-managed -->
 
 # Beads
 
-This repository contains ` + "`.beads`" + `. Before the first code, config, or doc edit, run ` + "`bd prime`" + `. Grok does not inject SessionStart stdout.
-
-Create and claim an issue when none matches the change, including a small edit. Close it with the commit id when the change is finished.
+This repository contains ` + "`.beads`" + `. Before the first code, config, or doc edit, run ` + "`bd prime`" + ` and follow its output. Grok does not inject SessionStart stdout.
 
 Keep this file and ` + "`AGENTS.md`" + ` out of ` + "`.gitignore`" + `. Grok skips ignored project rules.
 `

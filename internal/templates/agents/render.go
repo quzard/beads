@@ -57,6 +57,29 @@ type RenderOpts struct {
 	// of stating that the current project uses bd, it applies only in
 	// repositories that do, and so do its task-tracking rules.
 	UserLevel bool
+	// CustomPrime 表示有 PRIME.md 覆盖：bd prime 输出覆盖文件，而不是默认工作流。
+	// 这时托管段不分剖面，只写 primePointerBody。默认的任务跟踪规则（所有任务都用 bd、
+	// 用 bd remember 等）会和覆盖的工作流互相矛盾，所以不写。
+	CustomPrime bool
+}
+
+// primePointerText 是有 PRIME.md 覆盖时生成文件里唯一的 bd 说明。托管段、Codex 段、
+// Cursor 规则和技能都用这一份，各自只加自己的标题。开头一句和默认剖面相同，
+// UserLevel 的改写（userLevelWording）对它同样生效。
+const primePointerText = "This project uses **bd (beads)** for issue tracking. Run `bd prime` and follow its output. A PRIME.md file sets that output. It replaces all other bd workflow guidance."
+
+const primePointerBody = "## Beads Issue Tracker\n\n" + primePointerText
+
+// PrimePointerText returns the bd guidance, without a heading, that generated
+// files carry when a PRIME.md override is in effect.
+func PrimePointerText() string {
+	return primePointerText
+}
+
+// PrimePointerBody returns the managed-section body rendered when
+// RenderOpts.CustomPrime is set: a heading and PrimePointerText.
+func PrimePointerBody() string {
+	return primePointerBody
 }
 
 // omitsDoltPush reports whether rendered instructions leave out "bd dolt push":
@@ -216,6 +239,14 @@ func templateBody(profile Profile) string {
 // templateBodyWithOpts returns the raw body content (without markers) for a
 // profile, with conditional content controlled by opts.
 func templateBodyWithOpts(profile Profile, opts RenderOpts) string {
+	if opts.CustomPrime {
+		// 指针里没有 bd dolt push，不必去掉。
+		if opts.UserLevel {
+			return userLevelWording.Replace(primePointerBody)
+		}
+		return primePointerBody
+	}
+
 	var body string
 	switch profile {
 	case ProfileMinimal:

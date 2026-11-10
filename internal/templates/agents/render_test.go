@@ -575,3 +575,54 @@ func TestRenderSectionUserLevelAppliesOnlyInBeadsRepositories(t *testing.T) {
 		}
 	}
 }
+
+// 有 PRIME.md 覆盖时，两种剖面都只渲染指针，不带默认的任务跟踪规则。
+func TestRenderSectionCustomPrime(t *testing.T) {
+	opts := RenderOpts{HasRemote: true, CustomPrime: true}
+	for _, profile := range []Profile{ProfileFull, ProfileMinimal} {
+		section := RenderSectionWithOpts(profile, opts)
+		if !strings.Contains(section, "profile:"+string(profile)) {
+			t.Errorf("%s: marker lost the profile:\n%s", profile, section)
+		}
+		if !strings.Contains(section, PrimePointerBody()) {
+			t.Errorf("%s: missing the bd prime pointer:\n%s", profile, section)
+		}
+		for _, rule := range []string{"ALL task tracking", "bd remember", "TodoWrite", "Session Completion"} {
+			if strings.Contains(section, rule) {
+				t.Errorf("%s: still carries default rule %q:\n%s", profile, rule, section)
+			}
+		}
+	}
+	// 哈希不同，已有的默认段才会在下次 bd init / bd setup 时被换掉。
+	if CurrentHashWithOpts(ProfileFull, opts) == CurrentHash(ProfileFull) {
+		t.Error("custom-prime hash equals the default full hash")
+	}
+}
+
+func TestReplaceSectionCustomPrime(t *testing.T) {
+	content := "# Project\n\n" + RenderSection(ProfileFull) + "\ntrailer\n"
+	opts := RenderOpts{HasRemote: true, CustomPrime: true}
+
+	replaced, changed, err := ReplaceSectionWithOpts(content, ProfileFull, opts)
+	if err != nil || !changed {
+		t.Fatalf("ReplaceSectionWithOpts = (changed=%v, err=%v), want a replacement", changed, err)
+	}
+	if strings.Contains(replaced, "## Issue Tracking with bd (beads)") || !strings.Contains(replaced, PrimePointerBody()) {
+		t.Errorf("full section not replaced by the pointer:\n%s", replaced)
+	}
+	if !strings.HasPrefix(replaced, "# Project\n\n") || !strings.HasSuffix(replaced, "\ntrailer\n") {
+		t.Errorf("content outside the markers changed:\n%s", replaced)
+	}
+
+	again, changed, err := ReplaceSectionWithOpts(replaced, ProfileFull, opts)
+	if err != nil || changed || again != replaced {
+		t.Errorf("second replace = (changed=%v, err=%v), want a no-op", changed, err)
+	}
+}
+
+func TestRenderSectionCustomPrimeUserLevel(t *testing.T) {
+	section := RenderSectionWithOpts(ProfileMinimal, RenderOpts{HasRemote: true, UserLevel: true, CustomPrime: true})
+	if !strings.Contains(section, userLevelScope) || !strings.Contains(section, "In a beads repository, run `bd prime`") {
+		t.Errorf("user-level pointer is not scoped to beads repositories:\n%s", section)
+	}
+}
