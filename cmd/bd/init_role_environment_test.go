@@ -662,3 +662,54 @@ func TestInitArtifactGitRouting(t *testing.T) {
 		})
 	}
 }
+
+// The bootstrap commit holds the init artifacts only. Content the user staged
+// before bd init stays staged and is not part of that commit.
+func TestInitArtifactCommitLeavesUserStagedContent(t *testing.T) {
+	for _, kind := range []string{"existing_history", "unborn_branch"} {
+		t.Run(kind, func(t *testing.T) {
+			target, _, _ := newInitRoleFixture(t)
+			write := func(path, content string) {
+				t.Helper()
+				path = filepath.Join(target, path)
+				if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			initRoleFixtureGit(t, target, "config", "user.name", "Artifact Fixture")
+			initRoleFixtureGit(t, target, "config", "user.email", "artifact@example.invalid")
+			initRoleFixtureGit(t, target, "config", "commit.gpgSign", "false")
+			if kind == "existing_history" {
+				write("seed", "seed\n")
+				initRoleFixtureGit(t, target, "add", "seed")
+				initRoleFixtureGit(t, target, "-c", "core.hooksPath=", "commit", "-m", "seed")
+			}
+			write("user-staged.md", "staged before bd init\n")
+			initRoleFixtureGit(t, target, "add", "user-staged.md")
+			write(".beads/fixture", "artifact\n")
+			write("AGENTS.md", "artifact\n")
+			write(".devin/hooks.v1.json", "{}\n")
+
+			commitEmbeddedInitArtifacts(target, true)
+
+			if got := initRoleFixtureGit(t, target, "log", "-1", "--format=%s"); got != "bd init: initialize beads issue tracking" {
+				t.Fatalf("bootstrap commit missing, HEAD subject = %q", got)
+			}
+			committed := initRoleFixtureGit(t, target, "show", "--name-only", "--format=", "HEAD")
+			for _, want := range []string{".beads/fixture", "AGENTS.md", ".devin/hooks.v1.json"} {
+				if !strings.Contains(committed, want) {
+					t.Errorf("bootstrap commit lacks %s: %q", want, committed)
+				}
+			}
+			if strings.Contains(committed, "user-staged.md") {
+				t.Errorf("bootstrap commit took content the user staged: %q", committed)
+			}
+			if got := initRoleFixtureGit(t, target, "diff", "--cached", "--name-only"); got != "user-staged.md" {
+				t.Errorf("user content is no longer staged as it was: %q", got)
+			}
+		})
+	}
+}
