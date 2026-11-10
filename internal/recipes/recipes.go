@@ -157,6 +157,12 @@ var BuiltinRecipes = map[string]Recipe{
 		Type:        TypeSection,
 		Description: "Antigravity AGENTS.md section + SessionStart hook and rule",
 	},
+	"devin": {
+		Name:        "Devin CLI",
+		Path:        "AGENTS.md",
+		Type:        TypeSection,
+		Description: "Devin CLI AGENTS.md section + SessionStart hook",
+	},
 	"aider": {
 		Name:        "Aider",
 		Type:        TypeMultiFile,

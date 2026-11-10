@@ -12,7 +12,7 @@ import (
 
 func TestBuiltinRecipes(t *testing.T) {
 	// Ensure all expected built-in recipes exist
-	expected := []string{"cursor", "windsurf", "cody", "kilocode", "kiro", "claude", "copilot", "gemini", "factory", "codex", "mux", "aider", "junie", "grok", "qoder", "omp", "antigravity"}
+	expected := []string{"cursor", "windsurf", "cody", "kilocode", "kiro", "claude", "copilot", "gemini", "factory", "codex", "mux", "aider", "junie", "grok", "qoder", "omp", "antigravity", "devin"}
 
 	for _, name := range expected {
 		recipe, ok := BuiltinRecipes[name]
@@ -37,6 +37,7 @@ func TestAgentsMDSectionRecipes(t *testing.T) {
 		"qoder":       "Qoder CLI AGENTS.md section + SessionStart hook",
 		"omp":         "OMP AGENTS.md section + session hook and always-on rule",
 		"antigravity": "Antigravity AGENTS.md section + SessionStart hook and rule",
+		"devin":       "Devin CLI AGENTS.md section + SessionStart hook",
 	}
 	for name, desc := range want {
 		recipe, ok := BuiltinRecipes[name]
@@ -110,7 +111,7 @@ func TestListRecipeNames(t *testing.T) {
 	for _, name := range names {
 		found[name] = true
 	}
-	for _, expected := range []string{"cursor", "claude", "aider", "mux", "grok", "qoder", "omp", "antigravity"} {
+	for _, expected := range []string{"cursor", "claude", "aider", "mux", "grok", "qoder", "omp", "antigravity", "devin"} {
 		if !found[expected] {
 			t.Errorf("expected recipe %s not in list", expected)
 		}

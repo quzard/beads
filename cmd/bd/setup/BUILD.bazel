@@ -21,6 +21,7 @@ go_library(
         "omp.go",
         "opencode.go",
         "project_output.go",
+        "devin.go",
         "qoder.go",
         "session_prime.go",
         "setup_test_helpers.go",

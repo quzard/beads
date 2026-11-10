@@ -36,9 +36,9 @@ var setupCmd = &cobra.Command{
 	Long: `Setup integration files for AI editors and coding assistants.
 
 Recipes define where beads workflow instructions are written. Built-in recipes
-include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, kilocode, grok, qoder, omp, and antigravity.
+include cursor, claude, copilot, gemini, aider, factory, codex, mux, opencode, junie, kiro, windsurf, cody, kilocode, grok, qoder, omp, antigravity, and devin.
 
-grok, qoder, omp, antigravity, and factory keep an AGENTS.md section and also install a native SessionStart (or session-start) hook. Where that hook cannot inject text, the recipe adds a thin rules file.
+grok, qoder, omp, antigravity, factory, and devin keep an AGENTS.md section and also install a native SessionStart (or session-start) hook. Where that hook cannot inject text, the recipe adds a thin rules file.
 
 Examples:
   bd setup cursor          # Install Cursor IDE integration (rules + agent hooks)
@@ -282,6 +282,8 @@ func runRecipe(name string) error {
 		return runOMPRecipe()
 	case "antigravity":
 		return runAntigravityRecipe()
+	case "devin":
+		return runDevinRecipe()
 	}
 
 	recipe, err := lookupSetupRecipe(name)
@@ -538,6 +540,17 @@ func runOMPRecipe() error {
 		return translateSetupError(setup.RemoveOMP())
 	default:
 		return translateSetupError(setup.InstallOMP())
+	}
+}
+
+func runDevinRecipe() error {
+	switch {
+	case setupCheck:
+		return translateSetupError(setup.CheckDevin())
+	case setupRemove:
+		return translateSetupError(setup.RemoveDevin())
+	default:
+		return translateSetupError(setup.InstallDevin())
 	}
 }
 

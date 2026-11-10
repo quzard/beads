@@ -36,6 +36,8 @@ func TestSetupListIncludesAgentsSectionRecipes(t *testing.T) {
 		"OMP AGENTS.md section + session hook and always-on rule",
 		"antigravity",
 		"Antigravity AGENTS.md section + SessionStart hook and rule",
+		"devin",
+		"Devin CLI AGENTS.md section + SessionStart hook",
 	} {
 		if !strings.Contains(out, needle) {
 			t.Errorf("bd setup --list missing %q\n%s", needle, out)
@@ -44,7 +46,7 @@ func TestSetupListIncludesAgentsSectionRecipes(t *testing.T) {
 }
 
 func TestSetupAgentsSectionRecipeRoundTrip(t *testing.T) {
-	for _, name := range []string{"grok", "qoder", "omp", "antigravity"} {
+	for _, name := range []string{"grok", "qoder", "omp", "antigravity", "devin"} {
 		t.Run(name, func(t *testing.T) {
 			resetAgentsSectionSetupFlags(t)
 			dir := t.TempDir()

@@ -42,7 +42,7 @@ bd setup factory  # Factory.ai Droid - creates/updates AGENTS.md
 
 **Note:** Beads is a CLI tool you install once and use everywhere. You don't need to clone this repository into your project.
 
-`bd init` writes the full beads section into `AGENTS.md` (read by Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode) and installs the project Claude Code, Codex, and Cursor integrations. It does not detect which agents are installed. Pass `--skip-agents` or `--stealth` to skip that setup, or `--agents-profile=minimal` for a short `AGENTS.md` pointer to `bd prime`. Use `bd setup --list` to see every integration, including `bd setup codex`, `bd setup factory`, `bd setup claude`, `bd setup mux`, `bd setup cursor`, and more. See [Agent and IDE setup](docs/getting-started/ide-setup.md).
+`bd init` writes the full beads section into `AGENTS.md` (read by Grok, Qoder CLI, OMP, Antigravity, Factory Droid, Devin CLI, and OpenCode) and installs the project Claude Code, Codex, and Cursor integrations. It does not detect which agents are installed. Pass `--skip-agents` or `--stealth` to skip that setup, or `--agents-profile=minimal` for a short `AGENTS.md` pointer to `bd prime`. Use `bd setup --list` to see every integration, including `bd setup codex`, `bd setup factory`, `bd setup claude`, `bd setup mux`, `bd setup cursor`, and more. See [Agent and IDE setup](docs/getting-started/ide-setup.md).
 
 Manual copy-paste is only for unsupported agents, existing projects where you cannot rerun `bd init`/`bd setup`, or custom instruction files. In those cases, run `bd onboard` and paste the printed snippet into the file your agent reads.
 

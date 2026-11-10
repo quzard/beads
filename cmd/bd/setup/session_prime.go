@@ -35,6 +35,7 @@ const (
 	antigravityRulesFile = ".agents/rules/beads.md"
 	antigravityHookName  = "beads-prime"
 	factoryHooksFile     = ".factory/hooks.json"
+	devinHooksFile       = ".devin/hooks.v1.json"
 )
 
 // errSessionPrimeIncomplete 表示 --check 发现钩子或规则缺了、旧了，或被用户文件占了路径。

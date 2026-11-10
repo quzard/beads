@@ -73,7 +73,26 @@ func agentsSectionRecipes() []sectionRecipe {
 			checkPub:     CheckAntigravity,
 			stub:         stubAntigravityEnv,
 		},
+		{
+			name:         "Devin CLI",
+			setupCommand: "bd setup devin",
+			readHint:     devinIntegration.readHint,
+			docsURL:      devinRulesURL,
+			install:      installDevin,
+			check:        checkDevin,
+			remove:       removeDevin,
+			installPub:   InstallDevin,
+			checkPub:     CheckDevin,
+			stub:         stubDevinEnv,
+		},
 	}
+}
+
+func stubDevinEnv(t *testing.T, env agentsEnv) {
+	t.Helper()
+	orig := devinEnvProvider
+	devinEnvProvider = func() agentsEnv { return env }
+	t.Cleanup(func() { devinEnvProvider = orig })
 }
 
 func stubGrokEnv(t *testing.T, env agentsEnv) {

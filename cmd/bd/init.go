@@ -548,11 +548,11 @@ With --stealth: configures per-repository git settings for invisible beads usage
 By default, init installs project agent integrations. It does not detect which
 agents are on the machine; this set is always installed unless --skip-agents
 or --stealth is set (a bare repository skips it too):
-  • AGENTS.md full beads section, read by Grok, Qoder CLI, OMP, Antigravity, Factory Droid, and OpenCode
+  • AGENTS.md full beads section, read by Grok, Qoder CLI, OMP, Antigravity, Factory Droid, Devin CLI, and OpenCode
   • Claude Code hooks and CLAUDE.md
   • Codex skill, hooks, and AGENTS.md guidance
   • Cursor rules and hooks
-  • Grok, Qoder, OMP, Antigravity, and Factory SessionStart-style hooks (and a thin rule where the hook cannot inject context)
+  • Grok, Qoder, OMP, Antigravity, Factory, and Devin SessionStart-style hooks (and a thin rule where the hook cannot inject context)
 --agents-profile=minimal writes a short AGENTS.md pointer to bd prime instead of the full section. Claude, Codex, Cursor, and those SessionStart hooks still run. The minimal section is not upgraded.
 
 By default, beads uses an embedded Dolt engine (no external server needed).
@@ -4487,7 +4487,7 @@ func resolveInitDoltMode(proxiedFlag, sharedFlag, serverFlag bool) string {
 }
 
 // installSessionPrimeProjects 给已经写好 AGENTS.md 的 init 补上 Grok、Qoder、
-// OMP、Antigravity、Factory 的会话启动钩子（以及钩子灌不进上下文时的薄规则）。
+// OMP、Antigravity、Factory、Devin 的会话启动钩子（以及钩子灌不进上下文时的薄规则）。
 // 不调用完整的 bd setup 配方，免得 --agents-profile=minimal 被 full 段盖掉。
 func installSessionPrimeProjects(out setup.ProjectInstallOutput) {
 	install := func(name string, fn func(setup.ProjectInstallOutput) error) {
@@ -4500,6 +4500,7 @@ func installSessionPrimeProjects(out setup.ProjectInstallOutput) {
 	install("OMP", setup.InstallOMPProjectTo)
 	install("Antigravity", setup.InstallAntigravityProjectTo)
 	install("Factory", setup.InstallFactoryProjectTo)
+	install("Devin", setup.InstallDevinProjectTo)
 }
 
 // commitEmbeddedInitArtifacts stages the local init artifacts and preserves the

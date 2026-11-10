@@ -240,5 +240,6 @@ func SessionPrimeCommitPaths() []string {
 		factoryHooksFile,
 		factorySettingsFile,
 		factoryLegacyMigratedFile,
+		devinHooksFile,
 	}
 }

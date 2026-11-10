@@ -75,6 +75,16 @@ func TestSessionPrimeInstallCheckRemove(t *testing.T) {
 			command:  SessionPrimeCommand,
 			note:     "additionalContext",
 		},
+		{
+			name:     "devin",
+			install:  installDevin,
+			check:    checkDevin,
+			remove:   removeDevin,
+			files:    []string{devinHooksFile},
+			hooksRel: devinHooksFile,
+			command:  SessionPrimeCommand,
+			note:     "additionalContext",
+		},
 	}
 
 	for _, tc := range cases {
@@ -302,10 +312,13 @@ func TestProjectPrimeInstallSkipsAgentsSection(t *testing.T) {
 	if err := InstallFactoryProjectTo(out); err != nil {
 		t.Fatal(err)
 	}
+	if err := InstallDevinProjectTo(out); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := os.Stat(filepath.Join(dir, "AGENTS.md")); !os.IsNotExist(err) {
 		t.Fatalf("project install created AGENTS.md: %v", err)
 	}
-	for _, rel := range []string{grokHooksFile, grokRulesFile, qoderSettingsFile, ompHookFile, ompRulesFile, antigravityHooksFile, antigravityRulesFile, factoryHooksFile} {
+	for _, rel := range []string{grokHooksFile, grokRulesFile, qoderSettingsFile, ompHookFile, ompRulesFile, antigravityHooksFile, antigravityRulesFile, factoryHooksFile, devinHooksFile} {
 		if _, err := os.Stat(filepath.Join(dir, rel)); err != nil {
 			t.Fatalf("missing %s: %v", rel, err)
 		}
@@ -496,4 +509,45 @@ func antigravityFlatHas(def map[string]interface{}, command string) bool {
 		}
 	}
 	return false
+}
+
+func TestDevinSkipsHookWhenClaudePrimeExists(t *testing.T) {
+	stubDetectRenderOpts(t)
+	env, stdout, _ := newFactoryTestEnv(t)
+	root := filepath.Dir(env.agentsPath)
+	claude := filepath.Join(root, ".claude", "settings.json")
+	if err := os.MkdirAll(filepath.Dir(claude), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(claude, []byte("{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": [\n          {\"type\": \"command\", \"command\": \"bd prime --hook-json\"}\n        ]\n      }\n    ]\n  }\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	devinHook := filepath.Join(root, devinHooksFile)
+	if err := os.MkdirAll(filepath.Dir(devinHook), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(devinHook, []byte("{\n  \"SessionStart\": [\n    {\n      \"hooks\": [\n        {\"type\": \"command\", \"command\": \"bd prime --hook-json\"}\n      ]\n    }\n  ]\n}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	stdout.Reset()
+	if err := checkDevinPrime(env); err == nil {
+		t.Fatalf("check accepted a duplicate SessionStart hook:\n%s", stdout.String())
+	}
+	if err := installDevin(env); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(devinHook); !os.IsNotExist(err) {
+		t.Fatalf("devin hook still present: %v", err)
+	}
+	if !strings.Contains(stdout.String(), "Skipped .devin/hooks.v1.json") {
+		t.Fatalf("stdout:\n%s", stdout.String())
+	}
+	stdout.Reset()
+	if err := checkDevin(env); err != nil {
+		t.Fatalf("check: %v\n%s", err, stdout.String())
+	}
+	if !strings.Contains(stdout.String(), "Devin uses the Claude SessionStart hook") {
+		t.Fatalf("stdout:\n%s", stdout.String())
+	}
 }
