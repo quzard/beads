@@ -1,6 +1,6 @@
 ---
 name: beads
-description: Use when working in a repository that uses bd or Beads for durable project task tracking, issue dependencies, blocker management, multi-session handoff, or shared work memory. Trigger when the user asks to find ready work, claim or close tasks, create follow-up work, inspect blockers, recover project context, or choose between local planning and persistent project tracking.
+description: Use before any code, config, or doc edit in a repository that contains .beads, including a small change. Run bd prime first. Create and claim an issue when none matches, and close it with the commit id when the change is finished. Also use for ready work, blockers, and handoff.
 ---
 
 # Beads
@@ -9,7 +9,7 @@ Use Beads as the shared project task system. Local plans, scratch files, and per
 
 ## First Step
 
-Run:
+When the repository contains `.beads`, run this before the first edit. Do this even when the user did not mention bd.
 
 ```bash
 bd prime
@@ -63,6 +63,7 @@ bd close <id> --reason="Completed"
 
 Use Beads for:
 
+- every code, config, or doc change in a repository that contains `.beads`, including a small edit
 - shared project tasks
 - blockers and dependencies
 - discovered follow-up work
@@ -76,5 +77,5 @@ Use agent-local planning tools only for the current turn's execution checklist. 
 - Do not create markdown TODO files as the source of truth when Beads is available.
 - Do not use `bd edit`; it opens an interactive editor. Use `bd update` flags instead.
 - Prefer `--json` when parsing `bd` output programmatically.
-- If hooks are installed, `bd prime` may already be injected. Run it manually when context is missing.
+- Grok does not inject SessionStart output and skips gitignored project rules. When `bd prime` context is absent, run it before editing. Keep `AGENTS.md` and `.grok/rules/` out of `.gitignore`.
 - Do not auto-close or mutate tasks unless the work is actually complete.

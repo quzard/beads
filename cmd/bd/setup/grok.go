@@ -25,13 +25,11 @@ const grokRulesBody = `<!-- beads-setup-managed -->
 
 # Beads
 
-This repository tracks work with beads (` + "`bd`" + `). Grok loads every Markdown file in ` + "`.grok/rules/`" + `.
+This repository contains ` + "`.beads`" + `. Before the first code, config, or doc edit, run ` + "`bd prime`" + `. Grok does not inject SessionStart stdout.
 
-- Run ` + "`bd prime`" + ` at the start of a session and follow that workflow context. Grok does not inject SessionStart stdout.
-- Grok also loads Claude hooks. When ` + "`.claude/settings.json`" + ` already runs ` + "`bd prime`" + `, this repo does not add a second SessionStart hook.
-- Otherwise ` + "`.grok/hooks/beads.json`" + ` runs ` + "`bd prime --hook-json`" + ` on SessionStart. Trust project hooks once with ` + "`/hooks-trust`" + ` or ` + "`grok --trust`" + `.
+Create and claim an issue when none matches the change, including a small edit. Close it with the commit id when the change is finished.
 
-The beads section in ` + "`AGENTS.md`" + ` is the standing command reference.
+Keep this file and ` + "`AGENTS.md`" + ` out of ` + "`.gitignore`" + `. Grok skips ignored project rules.
 `
 
 const grokPrimeNote = `Grok ignores stdout from SessionStart, so .grok/hooks/beads.json does not inject context. .grok/rules/beads.md tells the session to run bd prime. Trust project hooks with /hooks-trust or grok --trust before they run.`
